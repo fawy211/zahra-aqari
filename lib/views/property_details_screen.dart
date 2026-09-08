@@ -140,10 +140,34 @@ class _DetailsScreenState extends State<DetailsScreen> {
     }
   }
 
-  /// التعامل مع عملية تبديل المفضلة مع معالجة الأخطاء
+  /// التعامل مع عملية تبديل المفضلة مع معالجة الأخطاء محسّنة
   void _handleToggleFavorite() async {
+    final propertyId = _currentProperty.id;
+    
+    // تحقق أولاً من أن الـ ID موجود
+    if (propertyId == null || propertyId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("❌ خطأ: معرّف العقار غير موجود"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     try {
-      await _favoriteService.toggleFavorite(_currentProperty.id ?? '');
+      await _favoriteService.toggleFavorite(propertyId);
+      if (!mounted) return;
+      // رسالة نجاح إضافية (اختيارية)
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text("✅ تم تحديث المفضلة"),
+      //     backgroundColor: Colors.green,
+      //     duration: Duration(seconds: 1),
+      //   ),
+      // );
     } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
