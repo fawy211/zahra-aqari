@@ -28,7 +28,7 @@ class PropertyService {
           .map((row) => PropertyModel.fromMap(Map<String, dynamic>.from(row)))
           .toList();
     }).handleError((error) {
-      debugPrint("خطأ في جلب العقارات النشطة: $error");
+      debugPrint("❌ خطأ في جلب العقارات النشطة: $error");
       return <PropertyModel>[];
     });
   }
@@ -48,7 +48,7 @@ class PropertyService {
           .map((row) => PropertyModel.fromMap(Map<String, dynamic>.from(row)))
           .toList();
     }).handleError((error) {
-      debugPrint("خطأ في جلب العقارات المميزة: $error");
+      debugPrint("❌ خطأ في جلب العقارات المميزة: $error");
       return <PropertyModel>[];
     });
   }
@@ -85,8 +85,11 @@ class PropertyService {
           .map((row) => PropertyModel.fromMap(
               Map<String, dynamic>.from(row as Map<String, dynamic>)))
           .toList();
+    } on PostgrestException catch (e) {
+      debugPrint("❌ خطأ في فلترة العقارات (Database): ${e.message}");
+      return [];
     } catch (e) {
-      debugPrint("خطأ في فلترة العقارات: $e");
+      debugPrint("❌ خطأ في فلترة العقارات: $e");
       return [];
     }
   }
@@ -94,6 +97,10 @@ class PropertyService {
   /// زيادة عدد المشاهدات للعقار عند فتحه بشكل آمن
   Future<void> incrementViewCount(String propertyId) async {
     try {
+      if (propertyId.isEmpty) {
+        throw Exception("معرّف العقار غير صحيح");
+      }
+
       final res = await _supabase
           .from('properties')
           .select('views_count')
@@ -105,9 +112,10 @@ class PropertyService {
         await _supabase
             .from('properties')
             .update({'views_count': currentViews + 1}).eq('id', propertyId);
+        debugPrint("✅ تم تحديث عدد المشاهدات");
       }
     } catch (e) {
-      debugPrint("خطأ في تحديث عدد المشاهدات: $e");
+      debugPrint("⚠️ خطأ في تحديث عدد المشاهدات: $e");
     }
   }
 
@@ -147,9 +155,13 @@ class PropertyService {
 
       // 3. إدخال البيانات في جدول properties
       await _supabase.from('properties').insert(dataToInsert);
+      debugPrint("✅ تم إضافة العقار بنجاح");
       return true;
+    } on PostgrestException catch (e) {
+      debugPrint("❌ خطأ في إضافة العقار (Database): ${e.message}");
+      return false;
     } catch (e) {
-      debugPrint("خطأ أثناء إضافة العقار: $e");
+      debugPrint("❌ خطأ أثناء إضافة العقار: $e");
       return false;
     }
   }
@@ -158,26 +170,55 @@ class PropertyService {
   Future<void> updateProperty(
       String propertyId, Map<String, dynamic> updatedData) async {
     try {
+      if (propertyId.isEmpty) {
+        throw Exception("معرّف العقار غير صحيح");
+      }
+
       await _supabase
           .from('properties')
           .update(updatedData)
           .eq('id', propertyId);
+      debugPrint("✅ تم تحديث بيانات العقار");
+    } on PostgrestException catch (e) {
+      debugPrint("❌ خطأ في تحديث العقار (Database): ${e.message}");
+      rethrow;
     } catch (e) {
-      debugPrint("خطأ أثناء تحديث العقار: $e");
+      debugPrint("❌ خطأ أثناء تحديث العقار: $e");
       rethrow;
     }
   }
 
-  /// حذف إعلان بواسطة الـ ID مع تنظيف السجلات المرتبطة في المفضلة تلقائياً
+  /// حذف إعلان بواسطة الـ ID مع معالجة آمنة للمفضلة
   Future<void> deleteProperty(String propertyId) async {
     try {
-      // 1. حذف المستندات المرتبطة في المفضلة (favorites) أولاً
-      await _supabase.from('favorites').delete().eq('property_id', propertyId);
+      if (propertyId.isEmpty) {
+        throw Exception("معرّف العقار غير صحيح");
+      }
+
+      // 1. محاولة حذف السجلات المرتبطة في جدول favorites (إن وجدت)
+      try {
+        await _supabase
+            .from('favorites')
+            .delete()
+            .eq('property_id', propertyId);
+        debugPrint("✅ تم حذف سجلات المفضلة المرتبطة");
+      } on PostgrestException catch (e) {
+        if (e.code == 'PGRST205') {
+          debugPrint(
+              "⚠️ تحذير: جدول favorites غير موجود، سيتم المتابعة بحذف العقار");
+        } else {
+          rethrow;
+        }
+      }
 
       // 2. حذف العقار الأساسي من جدول properties
       await _supabase.from('properties').delete().eq('id', propertyId);
+      debugPrint("✅ تم حذف العقار بنجاح");
+    } on PostgrestException catch (e) {
+      debugPrint("❌ خطأ في حذف العقار (Database): ${e.message}");
+      rethrow;
     } catch (e) {
-      debugPrint("خطأ أثناء حذف العقار: $e");
+      debugPrint("❌ خطأ أثناء حذف العقار: $e");
       rethrow;
     }
   }
