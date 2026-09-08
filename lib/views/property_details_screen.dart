@@ -24,11 +24,10 @@ class DetailsScreen extends StatefulWidget {
 class _DetailsScreenState extends State<DetailsScreen> {
   int _currentImageIndex = 0;
   final PropertyService _propertyService = PropertyService();
-  final FavoriteService _favoriteService =
-      FavoriteService(); // تم تعريف الخدمة هنا لتجنب إعادة الإنشاء
+  final FavoriteService _favoriteService = FavoriteService();
   bool _isLoading = false;
   late PropertyModel _currentProperty;
-  late final Stream<bool> _favoriteStream; // تخزين الـ Stream لمنع إعادة إنشائه
+  late final Stream<bool> _favoriteStream;
 
   @override
   void initState() {
@@ -101,7 +100,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("تم حذف الإعلان بنجاح"),
+              content: Text("✅ تم حذف الإعلان بنجاح"),
               backgroundColor: Colors.green),
         );
         Navigator.pop(context, true);
@@ -109,7 +108,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text("حدث خطأ أثناء الحذف: $e"),
+              content: Text("❌ حدث خطأ أثناء الحذف: $e"),
               backgroundColor: Colors.red),
         );
       } finally {
@@ -134,8 +133,24 @@ class _DetailsScreenState extends State<DetailsScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("تم تحديث تفاصيل الإعلان بنجاح"),
+          content: Text("✅ تم تحديث تفاصيل الإعلان بنجاح"),
           backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  /// التعامل مع عملية تبديل المفضلة مع معالجة الأخطاء
+  void _handleToggleFavorite() async {
+    try {
+      await _favoriteService.toggleFavorite(_currentProperty.id ?? '');
+    } on Exception catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ $e"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -178,8 +193,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
     final String govValue = _currentProperty.gov.isNotEmpty
         ? _currentProperty.gov
         : _currentProperty.metadata['gov']?.toString() ??
-        _currentProperty.metadata['governorate']?.toString() ??
-        '';
+            _currentProperty.metadata['governorate']?.toString() ??
+            '';
     if (govValue.isNotEmpty) {
       addDetail('المحافظة', govValue, valueKey: 'governorate');
     }
@@ -205,7 +220,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
       return null;
     }
 
-    // عرض الحقول المعروفة مرة واحدة فقط، سواء جاءت من عمود مباشر أو metadata.
     addDetail('الدور', firstMetadataValue(
         ['floor', 'floors', 'الطابق', 'الطوابق', 'الدور']),
         valueKey: 'floor');
@@ -427,8 +441,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         color: Colors.black.withOpacity(0.3),
                         shape: BoxShape.circle),
                     child: IconButton(
-                      icon:
-                          const Icon(Icons.share_rounded, color: Colors.white),
+                      icon: const Icon(Icons.share_rounded,
+                          color: Colors.white),
                       onPressed: () {
                         Share.share(
                             'شاهد هذا العقار الرائع "$propertyTitle" بسعر $formattedPrice ج.م على تطبيق زهرة العقاري.');
@@ -436,7 +450,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     ),
                   ),
                   StreamBuilder<bool>(
-                    stream: _favoriteStream, // استخدام الـ Stream المخزن
+                    stream: _favoriteStream,
                     builder: (context, snapshot) => Container(
                       margin: const EdgeInsets.only(left: 12, right: 4),
                       decoration: BoxDecoration(
@@ -449,8 +463,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               : Icons.favorite_border_rounded,
                           color: Colors.redAccent,
                         ),
-                        onPressed: () => _favoriteService
-                            .toggleFavorite(_currentProperty.id ?? ''),
+                        onPressed: _handleToggleFavorite,
                       ),
                     ),
                   ),
@@ -515,7 +528,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
-                            icon: const Icon(Icons.workspace_premium_rounded,
+                            icon: const Icon(
+                                Icons.workspace_premium_rounded,
                                 color: Color(0xFFC5A059)),
                             label: const Text(
                               "تمييز هذا الإعلان وزيادة مشاهداته",
@@ -549,8 +563,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           runSpacing: 8,
                           children: detailsList.map((entry) {
                             return Chip(
-                              avatar: const Icon(Icons.check_circle_rounded,
-                                  size: 16, color: Color(0xFFC5A059)),
+                              avatar: const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 16,
+                                  color: Color(0xFFC5A059)),
                               label: Text("${entry.key}: ${entry.value}",
                                   style: const TextStyle(
                                       fontSize: 13,
@@ -558,7 +574,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               backgroundColor: Colors.grey.shade100,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(color: Colors.grey.shade300),
+                                side: BorderSide(
+                                    color: Colors.grey.shade300),
                               ),
                             );
                           }).toList(),
@@ -594,7 +611,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
             Container(
               color: Colors.black.withOpacity(0.3),
               child: const Center(
-                child: CircularProgressIndicator(color: Color(0xFFC5A059)),
+                child: CircularProgressIndicator(
+                    color: Color(0xFFC5A059)),
               ),
             ),
         ],
@@ -661,8 +679,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 ),
                 icon: const Icon(Icons.forum_rounded),
                 label: const Text("تواصل مع المعلن",
-                    style:
-                        TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.bold)),
                 onPressed: () => _showContactOptions(context),
               ),
       ),
@@ -761,7 +779,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
               onTap: () async {
                 Navigator.pop(context);
                 if (phone.isNotEmpty) {
-                  // تنظيف رقم الهاتف وإزالة المسافات
                   String formattedPhone = phone.replaceAll(RegExp(r'\s+'), '');
                   if (formattedPhone.startsWith('01')) {
                     formattedPhone = '+20$formattedPhone';
