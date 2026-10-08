@@ -1,0 +1,9 @@
+{
+  "addProperty": "Add Property",
+  "publish": "Publish",
+  "price": "Price",
+  "description": "Description",
+  "contactPhone": "Contact Phone",
+  "negotiable": "Negotiable",
+  "contactMethod": "Contact Method"
+}

@@ -1,0 +1,9 @@
+{
+  "addProperty": "إضافة عقار",
+  "publish": "نشر العقار",
+  "price": "السعر",
+  "description": "الوصف",
+  "contactPhone": "رقم التواصل",
+  "negotiable": "قابل للتفاوض",
+  "contactMethod": "طريقة التواصل"
+}

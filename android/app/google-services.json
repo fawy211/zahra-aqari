@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "984120513393",
+    "project_id": "zahra-app-3e1ce",
+    "storage_bucket": "zahra-app-3e1ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:984120513393:android:271058291bad307cd3dcd0",
+        "android_client_info": {
+          "package_name": "aqar_app.example.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwlp5LE2n7ht3atox7M4rEeTQ4kzOmCiQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:984120513393:android:76d8f985900504f8d3dcd0",
+        "android_client_info": {
+          "package_name": "com.example.aqar_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwlp5LE2n7ht3atox7M4rEeTQ4kzOmCiQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:984120513393:android:6b1dcac8d8d6cfecd3dcd0",
+        "android_client_info": {
+          "package_name": "zahra.mustafa.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwlp5LE2n7ht3atox7M4rEeTQ4kzOmCiQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
