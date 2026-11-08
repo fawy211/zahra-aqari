@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -12,8 +11,6 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  bool _isProcessing = false;
-
   Future<void> _confirmAndProcess(
       double price, int days, String packageTitle) async {
     final bool? confirm = await showDialog<bool>(
@@ -50,64 +47,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
     );
 
-    if (confirm == true) {
-      await _processPayment(price, days, packageTitle);
-    }
-  }
-
-  Future<void> _processPayment(
-      double price, int days, String packageTitle) async {
-    setState(() => _isProcessing = true);
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
-
-      // 1. تحديث جدول العقارات في Supabase
-      await supabase.from('properties').update({
-        'isFeatured': price > 0,
-        if (days > 0)
-          'featuredExpiry':
-              DateTime.now().add(Duration(days: days)).toIso8601String(),
-        'package': packageTitle,
-      }).eq('id', widget.propertyId);
-
-      // 2. إدراج سجل العملية المالية في جدول payments في Supabase
-      await supabase.from('payments').insert({
-        'userId': userId,
-        'propertyId': widget.propertyId,
-        'amount': price,
-        'days': days,
-        'packageName': packageTitle,
-        'paymentDate': DateTime.now().toIso8601String(),
-        'status': 'completed',
-      });
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("تم الاشتراك في $packageTitle بنجاح!"),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    if (confirm == true && mounted) {
+      // لا يميّز التطبيق الإعلان ولا يُفعِّل الباقة من جهة العميل. يجب تأكيد
+      // الدفع من الخادم أولاً، ثم تُكتب الاستحقاقات من جهة موثوقة.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            price == 0
+                ? "الخدمة المجانية متاحة لك تلقائياً."
+                : "لتفعيل $packageTitle يرجى إتمام عملية الدفع وتأكيدها من الإدارة.",
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("خطأ: $e"),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
+          backgroundColor: const Color(0xFF003366),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
     }
   }
 
@@ -129,11 +84,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isProcessing
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF003366)),
-            )
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
