@@ -8,6 +8,7 @@ import '../models/property_models.dart';
 import 'Chat_Screen.dart';
 import 'payment_screen.dart';
 import 'Edit_Property_Screen.dart' as edit;
+import '../services/chat_service.dart';
 import '../services/property_service.dart';
 import '../services/favorite_service.dart';
 import '../utils/property_mapper.dart';
@@ -686,10 +687,59 @@ class _DetailsScreenState extends State<DetailsScreen> {
     );
   }
 
+  /// Opens the in-app chat for this property. The chat tables store one room
+  /// per property and identify a room by a uuid, so the room is read or created
+  /// before ChatScreen opens with the real chats.id.
+  Future<void> _openChatWithOwner() async {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تسجيل الدخول لبدء المحادثة')),
+      );
+      return;
+    }
+
+    if (currentUserId == _currentProperty.ownerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكنك بدء محادثة مع نفسك')),
+      );
+      return;
+    }
+
+    final String propertyId = _currentProperty.id ?? '';
+    if (propertyId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('تعذر فتح المحادثة: معرّف العقار غير متاح')),
+      );
+      return;
+    }
+
+    try {
+      final chatId = await ChatService().openChatForProperty(propertyId);
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatId: chatId,
+            otherUserName: "مالك العقار",
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('فشل فتح المحادثة: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _showContactOptions(BuildContext context) {
     final String phone = _currentProperty.phone;
-    final supabase = Supabase.instance.client;
-    final currentUserId = supabase.auth.currentUser?.id ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -697,7 +747,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Padding(
+      builder: (sheetContext) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -732,17 +782,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
               subtitle: const Text("دردشة مباشرة مع مالك العقار",
                   style: TextStyle(fontSize: 12)),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                      chatId:
-                          "chat_${currentUserId}_${_currentProperty.ownerId}",
-                      otherUserName: "مالك العقار",
-                    ),
-                  ),
-                );
+                Navigator.pop(sheetContext);
+                _openChatWithOwner();
               },
             ),
             const Divider(height: 15),
