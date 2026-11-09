@@ -27,7 +27,7 @@ class PaymentHistoryScreen extends StatelessWidget {
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: Supabase.instance.client
             .from('payments')
-            .stream(primaryKey: ['id']).order('paymentDate', ascending: false),
+            .stream(primaryKey: ['id']).order('created_at', ascending: false),
         builder: (context, snapshot) {
           // 1. حالة التحميل
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -105,8 +105,8 @@ class PaymentHistoryScreen extends StatelessWidget {
 
               // استخراج وتحويل التاريخ القادم من Supabase (غالباً ينزل كـ String بصيغة ISO أو DateTime)
               DateTime date;
-              if (data['paymentDate'] != null) {
-                date = DateTime.tryParse(data['paymentDate'].toString()) ??
+              if (data['created_at'] != null) {
+                date = DateTime.tryParse(data['created_at'].toString()) ??
                     DateTime.now();
               } else {
                 date = DateTime.now();
