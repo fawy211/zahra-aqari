@@ -3,6 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
+// Bucket in the Supabase project that accepts images from signed-in users.
+// The app already uploads property photos to this bucket, and the project has
+// no separate bucket for profile photos.
+const String kAvatarStorageBucket = 'property_images';
+
+// Keys that the profiles table has in the Supabase project. PostgREST answers
+// 400 for an unknown column, and the whole row update then fails.
+const Set<String> kProfilesUpdateColumns = {'name', 'phone', 'company_name'};
+
+// Builds the row update for the profiles table from the edit form.
+Map<String, dynamic> buildProfileUpdateData({
+  required String name,
+  required String phone,
+  String? companyName,
+}) {
+  final data = <String, dynamic>{
+    'name': name.trim(),
+    'phone': phone.trim(),
+  };
+  final company = companyName?.trim() ?? '';
+  if (company.isNotEmpty) {
+    data['company_name'] = company;
+  }
+  return data;
+}
+
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
   const EditProfileScreen({super.key, required this.userData});
@@ -38,8 +64,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           '',
     );
     // جلب رابط الصورة الشخصية القديمة إن وجد
-    _currentAvatarUrl =
-        widget.userData['avatar_url'] ?? widget.userData['image'];
+    final authMetadata =
+        Supabase.instance.client.auth.currentUser?.userMetadata;
+    _currentAvatarUrl = authMetadata?['avatar_url']?.toString() ??
+        widget.userData['avatar_url'] ??
+        widget.userData['image'];
   }
 
   @override
@@ -82,28 +111,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (_selectedImageFile != null) {
           final fileName =
               'avatar_${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final storagePath = 'avatars/$fileName';
+          final storagePath = '${user.id}/avatars/$fileName';
 
-          // رفع الملف إلى Bucket مخصص ولنفترض اسمه 'profiles_bucket' (يمكنك تغييره حسب اسم البكت لديك)
+          // رفع الملف إلى Bucket موجود في المشروع
           await supabase.storage
-              .from('profiles_bucket')
+              .from(kAvatarStorageBucket)
               .upload(storagePath, _selectedImageFile!);
 
           // الحصول على الرابط العام للصورة المرفوعة
           uploadedAvatarUrl = supabase.storage
-              .from('profiles_bucket')
+              .from(kAvatarStorageBucket)
               .getPublicUrl(storagePath);
+
+          // Auth يدمج هذه البيانات مع الـ metadata الحالية، فتبقى بيانات الاسم
+          // والهاتف التي كتبها التسجيل كما هي.
+          await supabase.auth.updateUser(
+            UserAttributes(data: {'avatar_url': uploadedAvatarUrl}),
+          );
         }
 
-        final Map<String, dynamic> updateData = {
-          'name': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          if (uploadedAvatarUrl != null) 'avatar_url': uploadedAvatarUrl,
-        };
-
-        if (_companyNameController.text.trim().isNotEmpty) {
-          updateData['company_name'] = _companyNameController.text.trim();
-        }
+        final Map<String, dynamic> updateData = buildProfileUpdateData(
+          name: _nameController.text,
+          phone: _phoneController.text,
+          companyName: _companyNameController.text,
+        );
 
         await supabase.from('profiles').update(updateData).eq('id', user.id);
 
