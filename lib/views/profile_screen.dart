@@ -5,6 +5,7 @@ import 'package:aqari_app/models/user_model.dart';
 import 'package:aqari_app/views/edit_profile_screen.dart';
 import 'package:aqari_app/views/company_registration_screen.dart';
 import 'package:aqari_app/views/admin_panel_screen.dart';
+import 'package:aqari_app/services/admin_service.dart';
 import 'package:aqari_app/views/chat_list_screen.dart';
 import 'package:aqari_app/views/favorites_view.dart';
 import 'package:aqari_app/views/payment_history_screen.dart';
@@ -19,7 +20,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final supabase = Supabase.instance.client;
+  final AdminService _adminService = AdminService();
   late final StreamSubscription<AuthState> _authSubscription;
+  bool _isAdmin = false;
 
   User? _currentUser;
   bool _isLoadingData = false;
@@ -43,6 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _loadUserData(_currentUser!.id, _currentUser!.email ?? '');
         } else {
           _userModel = null;
+          _isAdmin = false;
           _walletData = {'balance': 0, 'currency': 'ج.م'};
         }
       });
@@ -74,6 +78,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           email: email,
           name: email.split('@')[0],
         );
+      }
+
+      // قرار الإدارة يُقرأ من جدول admins المتحكم به من الخادم، وليس من
+      // account_type القابل للكتابة من العميل.
+      try {
+        _isAdmin = await _adminService.isAdmin();
+      } catch (_) {
+        _isAdmin = false;
       }
 
       // 2. جلب بيانات المحفظة
@@ -183,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final bool isAdmin = _userModel!.accountType == 'admin';
+    final bool isAdmin = _isAdmin;
     final balance = _walletData['balance'] ?? 0;
     final currency = _walletData['currency'] ?? 'ج.م';
     final email = _currentUser!.email ?? '';
