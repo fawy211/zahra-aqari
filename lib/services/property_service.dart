@@ -12,6 +12,8 @@ class PropertyService {
     return _supabase.from('properties').stream(primaryKey: ['id']).map((rows) {
       // فلترة العقارات التي لم تنتهي صلاحيتها وتثبيت الترتيب محلياً للـ Stream
       final activeRows = rows.where((row) {
+        // القوائم العامة تعرض الإعلانات الموثقة فقط
+        if (row['status'] != 'verified') return false;
         final expiresAt = row['expires_at']?.toString();
         if (expiresAt == null) return true;
         return expiresAt.compareTo(nowIso) > 0;
@@ -38,6 +40,8 @@ class PropertyService {
     final nowIso = DateTime.now().toIso8601String();
     return _supabase.from('properties').stream(primaryKey: ['id']).map((rows) {
       final featuredRows = rows.where((row) {
+        // القوائم العامة تعرض الإعلانات الموثقة فقط
+        if (row['status'] != 'verified') return false;
         final isFeatured = row['is_featured'] == true;
         final featuredUntil = row['featured_until']?.toString();
         if (!isFeatured || featuredUntil == null) return false;
@@ -60,7 +64,8 @@ class PropertyService {
     Map<String, dynamic>? codeFilters,
   }) async {
     try {
-      dynamic query = _supabase.from('properties').select();
+      // البحث العام يعرض الإعلانات الموثقة فقط
+      dynamic query = _supabase.from('properties').select().eq('status', 'verified');
 
       // تم التعديل من 'governorate' إلى 'gov' ليتطابق مع قاعدة البيانات واسم الحقل في الموديل
       if (governorate != null && governorate.isNotEmpty) {

@@ -60,7 +60,8 @@ final filteredPropertiesProvider = FutureProvider.autoDispose
     .family<List<PropertyModel>, FilterParams>((ref, params) async {
   final supabase = Supabase.instance.client;
 
-  var query = supabase.from('properties').select('*');
+  // الواجهة العامة تعرض الإعلانات الموثقة فقط
+  var query = supabase.from('properties').select('*').eq('status', 'verified');
   final filters = params.advancedFilters;
 
   // Use actual database columns and tolerate legacy governorate/category values.
