@@ -90,16 +90,13 @@ class SubscriptionScreen extends StatelessWidget {
               try {
                 // 1. تسجيل عملية الدفع في جدول payments
                 await _supabase.from('payments').insert({
-                  'userId': user.id,
-                  'title': 'اشتراك باقة: ${plan.name}',
+                  'user_id': user.id,
                   'amount': plan.price,
-                  'timestamp': DateTime.now().toIso8601String(),
                 });
 
-                // 2. تحديث بيانات المستخدم في جدول users
-                await _supabase.from('users').update({
-                  'subscriptionPlan': plan.name,
-                  'subscriptionDate': DateTime.now().toIso8601String(),
+                // 2. تحديث باقة المستخدم في جدول profiles
+                await _supabase.from('profiles').update({
+                  'subscription_plan': plan.name,
                 }).eq('id', user.id);
 
                 if (context.mounted) {
