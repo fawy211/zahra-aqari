@@ -13,9 +13,24 @@ class PropertyService {
     await _supabase.from('properties').update(data).eq('id', propertyId);
   }
 
-  // دالة حذف العقار
+  // دالة حذف العقار: قيد الحذف بمعرف المالك وتحقق من نجاح العملية.
   Future<void> deleteProperty(String propertyId) async {
-    await _supabase.from('properties').delete().eq('id', propertyId);
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('يجب تسجيل الدخول لحذف الإعلان.');
+    }
+
+    final deleted = await _supabase
+        .from('properties')
+        .delete()
+        .eq('id', propertyId)
+        .eq('owner_id', userId)
+        .select('id')
+        .maybeSingle();
+
+    if (deleted == null) {
+      throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
+    }
   }
 }
 
