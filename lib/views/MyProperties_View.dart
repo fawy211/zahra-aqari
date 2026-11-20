@@ -1,53 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Edit_Property_Screen.dart';
+import '../services/property_service.dart';
 import '../models/property_models.dart';
-
-// تعريف كلاس الخدمة للتعامل مع قاعدة بيانات Supabase
-class PropertyService {
-  final SupabaseClient _supabase = Supabase.instance.client;
-
-  // دالة تعديل العقار: لا تسمح بتعديل إعلان لا يخص المستخدم الحالي.
-  Future<void> updateProperty(
-      String propertyId, Map<String, dynamic> data) async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
-      throw Exception('يجب تسجيل الدخول لتعديل الإعلان.');
-    }
-
-    final updated = await _supabase
-        .from('properties')
-        .update(data)
-        .eq('id', propertyId)
-        .eq('owner_id', userId)
-        .select('id')
-        .maybeSingle();
-
-    if (updated == null) {
-      throw Exception('لم يتم تعديل الإعلان. قد لا يكون تابعاً لحسابك أو لا توجد صلاحية.');
-    }
-  }
-
-  // دالة حذف العقار: قيد الحذف بمعرف المالك وتحقق من نجاح العملية.
-  Future<void> deleteProperty(String propertyId) async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
-      throw Exception('يجب تسجيل الدخول لحذف الإعلان.');
-    }
-
-    final deleted = await _supabase
-        .from('properties')
-        .delete()
-        .eq('id', propertyId)
-        .eq('owner_id', userId)
-        .select('id')
-        .maybeSingle();
-
-    if (deleted == null) {
-      throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
-    }
-  }
-}
 
 class MyPropertiesView extends StatelessWidget {
   MyPropertiesView({super.key});
