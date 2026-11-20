@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:aqari_app/services/admin_service.dart';
 
 class AdminPanelScreen extends StatelessWidget {
   const AdminPanelScreen({super.key});
@@ -93,10 +94,30 @@ class PropertyApprovalTile extends StatelessWidget {
   Future<void> _updateStatus(
       BuildContext context, String status, String statusName) async {
     try {
+      final adminService = AdminService();
+      if (!await adminService.isAdmin()) {
+        throw Exception('غير مصرح لك بمراجعة الإعلانات.');
+      }
+
       final SupabaseClient supabase = Supabase.instance.client;
-      await supabase
+      final updateData = <String, dynamic>{'status': status};
+      if (status == 'verified') {
+        updateData['expires_at'] = DateTime.now()
+            .toUtc()
+            .add(const Duration(days: 90))
+            .toIso8601String();
+      }
+
+      final updated = await supabase
           .from('properties')
-          .update({'status': status}).eq('id', docId);
+          .update(updateData)
+          .eq('id', docId)
+          .eq('status', 'pending')
+          .select('id')
+          .maybeSingle();
+      if (updated == null) {
+        throw Exception('لم يتم تحديث الإعلان؛ ربما تمت مراجعته بالفعل.');
+      }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
