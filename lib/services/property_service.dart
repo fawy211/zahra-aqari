@@ -188,14 +188,31 @@ class PropertyService {
     }
   }
 
-  /// حذف إعلان بواسطة الـ ID مع تنظيف السجلات المرتبطة في المفضلة تلقائياً
+  /// حذف إعلان بواسطة الـ ID بعد التأكد من أن المستخدم الحالي هو المالك.
+  /// يجب أيضاً فرض شرط owner_id وسياسة الحذف في Supabase RLS.
   Future<void> deleteProperty(String propertyId) async {
     try {
-      // 1. حذف المستندات المرتبطة في المفضلة (favorites) أولاً
-      await _supabase.from('favorites').delete().eq('property_id', propertyId);
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('يجب تسجيل الدخول لحذف الإعلان.');
+      }
 
-      // 2. حذف العقار الأساسي من جدول properties
-      await _supabase.from('properties').delete().eq('id', propertyId);
+      // لا نحذف مفضلات أي مستخدم قبل التأكد من ملكية الإعلان وحذف سجله.
+      final deletedProperty = await _supabase
+          .from('properties')
+          .delete()
+          .eq('id', propertyId)
+          .eq('owner_id', userId)
+          .select('id')
+          .maybeSingle();
+
+      if (deletedProperty == null) {
+        throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
+      }
+
+      // تنظيف احتياطي بعد نجاح حذف إعلان يملكه المستخدم الحالي.
+      // يفضّل وجود FK ON DELETE CASCADE لضمان التنظيف الذري لكل المستخدمين.
+      await _supabase.from('favorites').delete().eq('property_id', propertyId);
     } catch (e) {
       debugPrint("خطأ أثناء حذف العقار: $e");
       rethrow;
