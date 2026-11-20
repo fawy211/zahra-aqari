@@ -652,8 +652,13 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
                 suffixStyle: TextStyle(
                     color: Colors.grey.shade600, fontWeight: FontWeight.bold),
               ),
-              validator: (val) =>
-                  val == null || val.isEmpty ? 'يرجى إدخال السعر' : null,
+              validator: (val) {
+                final parsed = double.tryParse(val?.trim() ?? '');
+                if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                  return 'أدخل سعراً رقمياً أكبر من صفر';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -678,8 +683,13 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
                 suffixStyle: TextStyle(
                     color: Colors.grey.shade600, fontWeight: FontWeight.bold),
               ),
-              validator: (val) =>
-                  val == null || val.isEmpty ? 'يرجى إدخال المساحة' : null,
+              validator: (val) {
+                final parsed = double.tryParse(val?.trim() ?? '');
+                if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                  return 'أدخل مساحة رقمية أكبر من صفر';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             if (_isResidential || _isFieldEnabled('rooms')) ...[
