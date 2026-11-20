@@ -423,8 +423,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
 
-    if (result == true) {
+    if (result != true || !mounted) return;
+
+    try {
       await supabase.auth.signOut();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("تعذر تسجيل الخروج: $error"),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 }
