@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // 1. تسجيل الدخول عبر Supabase
         await supabase.auth.signInWithPassword(
           email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+          password: _passwordController.text,
         );
 
         if (!mounted) return;
