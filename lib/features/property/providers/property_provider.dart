@@ -188,7 +188,11 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
       propertyMap['is_featured'] = false;
       propertyMap['is_reported'] = false;
       propertyMap['report_count'] = 0;
+      // لا نسمح بتمرير تواريخ صلاحية أو تحديث أو تمييز من كائن العميل.
+      // يبدأ الإعلان الجديد بمدة الصلاحية التي تحددها الإدارة بعد المراجعة.
+      propertyMap.remove('expires_at');
       propertyMap.remove('featured_until');
+      propertyMap.remove('last_refreshed');
       propertyMap['images'] = uploadedImageUrls;
       propertyMap['video'] = uploadedVideoUrl;
       propertyMap['created_at'] = DateTime.now().toIso8601String();
