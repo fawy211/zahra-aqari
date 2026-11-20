@@ -82,14 +82,20 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       // 2. بناء كائن المودل المحدث باستخدام دالة copyWith الموجودة في المودل الأساسي
       final updatedModel = widget.property.copyWith(
         title: _titleController.text.trim(),
-        price: double.tryParse(_priceController.text.trim()) ??
-            widget.property.price,
+        price: double.parse(_priceController.text.trim()),
         finishing: _finishingController.text.trim(),
         metadata: updatedMetadata,
       );
 
       // 3. إرسال خريطة البيانات نظيفة تماماً إلى قاعدة البيانات عبر toMap() الأصلية
-      await _propertyService.updateProperty(propertyId, updatedModel.toMap());
+      // لا نرسل كل حقول الإعلان عند تعديل البيانات العادية؛
+      // حقول الحالة والمالك والتمييز والتقارير لا تُعدّل من شاشة المستخدم.
+      await _propertyService.updateProperty(propertyId, {
+        'title': updatedModel.title,
+        'price': updatedModel.price,
+        'finishing': updatedModel.finishing,
+        'metadata': updatedModel.metadata,
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,9 +164,13 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                 keyboardType: TextInputType.number,
                 decoration:
                     _inputDecoration("السعر", Icons.attach_money_rounded),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? "يرجى إدخال السعر"
-                    : null,
+                validator: (value) {
+                  final price = double.tryParse(value?.trim() ?? '');
+                  if (price == null || !price.isFinite || price <= 0) {
+                    return "يرجى إدخال سعر صحيح أكبر من صفر";
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
