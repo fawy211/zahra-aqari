@@ -227,8 +227,23 @@ class _CompanyRegistrationScreenState extends State<CompanyRegistrationScreen> {
             borderSide: const BorderSide(color: Color(0xFF003366), width: 1.5),
           ),
         ),
-        validator: (v) =>
-            v == null || v.trim().isEmpty ? 'هذا الحقل مطلوب' : null,
+        validator: (v) {
+          final value = v?.trim() ?? '';
+          if (value.isEmpty) return 'هذا الحقل مطلوب';
+
+          if (type == TextInputType.emailAddress &&
+              !RegExp(r'^[^@\\s]+@[^@\\s]+\\.[^@\\s]+
+      ),
+    );
+  }
+}
+)
+                  .hasMatch(value)) {
+            return 'يرجى إدخال بريد إلكتروني صحيح';
+          }
+
+          return null;
+        },
       ),
     );
   }
