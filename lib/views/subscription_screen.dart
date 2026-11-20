@@ -84,46 +84,23 @@ class SubscriptionScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(dialogContext);
 
-              try {
-                // 1. تسجيل عملية الدفع في جدول payments
-                await _supabase.from('payments').insert({
-                  'userId': user.id,
-                  'title': 'اشتراك باقة: ${plan.name}',
-                  'amount': plan.price,
-                  'timestamp': DateTime.now().toIso8601String(),
-                });
-
-                // 2. تحديث بيانات المستخدم في جدول users
-                await _supabase.from('users').update({
-                  'subscriptionPlan': plan.name,
-                  'subscriptionDate': DateTime.now().toIso8601String(),
-                }).eq('id', user.id);
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("تم الاشتراك في ${plan.name} بنجاح!"),
-                      backgroundColor: Colors.green.shade700,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+              // لا يُفعِّل التطبيق الباقة المدفوعة. يجب تأكيد الدفع من الخادم
+              // أولاً، ثم تُكتب الباقة من جهة موثوقة لا من العميل.
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "لتفعيل ${plan.name} يرجى إتمام عملية الدفع وتأكيدها من الإدارة.",
                     ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text("حدث خطأ أثناء عملية الاشتراك: ${e.toString()}"),
-                      backgroundColor: Colors.red.shade700,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
+                    backgroundColor: const Color(0xFF003366),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
               }
             },
             child: const Text("تأكيد"),
