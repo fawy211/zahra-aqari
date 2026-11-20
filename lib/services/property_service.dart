@@ -176,11 +176,27 @@ class PropertyService {
   /// حذف إعلان بواسطة الـ ID مع تنظيف السجلات المرتبطة في المفضلة تلقائياً
   Future<void> deleteProperty(String propertyId) async {
     try {
-      // 1. حذف المستندات المرتبطة في المفضلة (favorites) أولاً
+      if (propertyId.trim().isEmpty) {
+        throw ArgumentError('معرّف العقار غير صالح.');
+      }
+
+      // حذف المفضلة المرتبطة أولاً لتجنب بقاء سجلات يتيمة إذا لم يوجد
+      // قيد ON DELETE CASCADE في قاعدة البيانات.
       await _supabase.from('favorites').delete().eq('property_id', propertyId);
 
-      // 2. حذف العقار الأساسي من جدول properties
-      await _supabase.from('properties').delete().eq('id', propertyId);
+      // لا نعتبر العملية ناجحة إلا إذا رجع العقار المحذوف فعلياً.
+      final deletedProperty = await _supabase
+          .from('properties')
+          .delete()
+          .eq('id', propertyId)
+          .select('id')
+          .maybeSingle();
+
+      if (deletedProperty == null) {
+        throw Exception(
+          'لم يتم حذف العقار. ربما لم يعد موجوداً أو لا تملك صلاحية حذفه.',
+        );
+      }
     } catch (e) {
       debugPrint("خطأ أثناء حذف العقار: $e");
       rethrow;
