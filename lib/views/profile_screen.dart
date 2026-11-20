@@ -40,16 +40,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // مراقبة دقيقة لتغيرات تسجيل الدخول/الخروج
     _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
       if (!mounted) return;
+
+      final nextUser = data.session?.user ?? supabase.auth.currentUser;
+      final userChanged = _currentUser?.id != nextUser?.id;
+
       setState(() {
-        _currentUser = data.session?.user ?? supabase.auth.currentUser;
-        if (_currentUser != null) {
-          _loadUserData(_currentUser!.id, _currentUser!.email ?? '');
-        } else {
+        _currentUser = nextUser;
+
+        // لا تعرض بيانات الحساب السابق أثناء تحميل بيانات الحساب الجديد.
+        if (nextUser == null || userChanged) {
           _userModel = null;
           _isAdmin = false;
           _walletData = {'balance': 0, 'currency': 'ج.م'};
+          _isLoadingData = nextUser != null;
         }
       });
+
+      if (nextUser != null) {
+        _loadUserData(nextUser.id, nextUser.email ?? '');
+      }
     });
   }
 
