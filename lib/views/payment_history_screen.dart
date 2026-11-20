@@ -1,9 +1,45 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 
-class PaymentHistoryScreen extends StatelessWidget {
+class PaymentHistoryScreen extends StatefulWidget {
   const PaymentHistoryScreen({super.key});
+
+  @override
+  State<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
+}
+
+class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  Stream<List<Map<String, dynamic>>>? _paymentsStream;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _bindPaymentsStream();
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((_) {
+      if (mounted) setState(_bindPaymentsStream);
+    });
+  }
+
+  void _bindPaymentsStream() {
+    final userId = _supabase.auth.currentUser?.id;
+    _paymentsStream = userId == null
+        ? Stream<List<Map<String, dynamic>>>.value([])
+        : _supabase
+            .from('payments')
+            .stream(primaryKey: ['id'])
+            .eq('user_id', userId)
+            .order('created_at', ascending: false);
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +61,7 @@ class PaymentHistoryScreen extends StatelessWidget {
       ),
       // استخدام StreamBuilder للاستماع الفوري للبيانات من جدول payments في Supabase وترتيبها تنازلياً حسب التاريخ
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: Supabase.instance.client.auth.currentUser == null
-            ? Stream<List<Map<String, dynamic>>>.empty()
-            : Supabase.instance.client
-                .from('payments')
-                .stream(primaryKey: ['id'])
-                .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
-                .order('created_at', ascending: false),
+        stream: _paymentsStream ?? Stream<List<Map<String, dynamic>>>.value([]),
         builder: (context, snapshot) {
           // 1. حالة التحميل
           if (snapshot.connectionState == ConnectionState.waiting) {
