@@ -35,9 +35,9 @@ class DelegateModel {
     return {
       'name': name,
       'email': email,
-      'canAddProperties': canAddProperties,
-      'canReplyToMessages': canReplyToMessages,
-      'companyId': companyId,
+      'can_add_properties': canAddProperties,
+      'can_reply_to_messages': canReplyToMessages,
+      'company_id': companyId,
     };
   }
 }
