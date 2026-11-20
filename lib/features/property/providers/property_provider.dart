@@ -88,6 +88,9 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
 
   Future<bool> addProperty(
       PropertyModel property, List<String> imagePaths) async {
+    final List<String> uploadedImagePaths = [];
+    String? uploadedVideoPath;
+    bool propertyInserted = false;
     try {
       final supabase = Supabase.instance.client;
       final authUser = supabase.auth.currentUser;
@@ -115,6 +118,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           await supabase.storage.from('property_images').upload(fileName, file);
         }
 
+        uploadedImagePaths.add(fileName);
         final String downloadUrl =
             supabase.storage.from('property_images').getPublicUrl(fileName);
         uploadedImageUrls.add(downloadUrl);
@@ -132,6 +136,8 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           await supabase.storage
               .from('property_Videos')
               .uploadBinary(videoName, bytes);
+          uploadedVideoPath = videoName;
+          uploadedVideoPath = videoName;
           uploadedVideoUrl =
               supabase.storage.from('property_Videos').getPublicUrl(videoName);
         } else {
@@ -203,6 +209,21 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
 
       return true;
     } catch (e, stackTrace) {
+      // إذا فشل إنشاء سجل العقار، ننظف الوسائط التي رفعناها في هذه المحاولة.
+      // لا نحذفها إذا كان السجل قد أُنشئ بالفعل.
+      if (!propertyInserted) {
+        try {
+          final storage = Supabase.instance.client.storage;
+          if (uploadedImagePaths.isNotEmpty) {
+            await storage.from('property_images').remove(uploadedImagePaths);
+          }
+          if (uploadedVideoPath != null) {
+            await storage.from('property_Videos').remove([uploadedVideoPath]);
+          }
+        } catch (cleanupError) {
+          debugPrint("تعذر تنظيف بعض الملفات المرفوعة: $cleanupError");
+        }
+      }
       debugPrint("========== خطأ في إضافة ونشر العقار ==========");
       debugPrint(e.toString());
       debugPrint("Stack trace: $stackTrace");
