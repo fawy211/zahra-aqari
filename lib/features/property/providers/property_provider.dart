@@ -137,7 +137,6 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
               .from('property_Videos')
               .uploadBinary(videoName, bytes);
           uploadedVideoPath = videoName;
-          uploadedVideoPath = videoName;
           uploadedVideoUrl =
               supabase.storage.from('property_Videos').getPublicUrl(videoName);
         } else {
@@ -168,6 +167,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           await supabase.storage
               .from('property_Videos')
               .upload(videoName, fileToUpload);
+          uploadedVideoPath = videoName;
 
           uploadedVideoUrl =
               supabase.storage.from('property_Videos').getPublicUrl(videoName);
@@ -193,6 +193,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           .insert(propertyMap)
           .select()
           .single();
+      propertyInserted = true;
 
       PropertyModel createdProperty = PropertyModel.fromMap(
         insertedData,
