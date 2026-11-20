@@ -116,7 +116,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                 date = DateTime.now();
               }
 
-              final String status = data['status']?.toString() ?? 'completed';
+              final String status = data['status']?.toString().toLowerCase() ?? 'unknown';
 
               return PaymentCard(
                 amount: amount,
