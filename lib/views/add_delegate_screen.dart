@@ -104,7 +104,7 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
               validator: (v) {
                 final email = v?.trim() ?? '';
                 final valid =
-                    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+.hasMatch(email);
+                    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
                 return valid ? null : "يرجى إدخال بريد إلكتروني صحيح";
               },
             ),
