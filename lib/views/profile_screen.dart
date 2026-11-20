@@ -115,6 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _walletData = {'balance': 0, 'currency': 'ج.م'};
       }
     } catch (_) {
+      // تجاهل أخطاء الطلبات القديمة إذا تغيّر الحساب أثناء التحميل.
+      if (!mounted || _currentUser?.id != userId) return;
       _userModel = UserModel(uid: userId, email: email, name: 'مستخدم');
       _walletData = {'balance': 0, 'currency': 'ج.م'};
     } finally {
