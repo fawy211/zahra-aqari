@@ -20,6 +20,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoading = true;
   bool _isAdmin = false;
   bool _isAuthenticated = false;
+  String? _authCheckError;
   StreamSubscription<AuthState>? _authSubscription;
 
   @override
@@ -44,7 +45,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuthAndRole() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _authCheckError = null;
+    });
 
     try {
       final session = _supabase.auth.currentSession;
@@ -60,7 +65,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _isAdmin = false;
       }
     } catch (e) {
-      _isAuthenticated = false;
+      // لا نعتبر المستخدم خارج الجلسة بسبب فشل الشبكة/فحص الدور.
+      _authCheckError = 'تعذر التحقق من الحساب والصلاحيات. تحقق من الاتصال وحاول مرة أخرى.';
       _isAdmin = false;
     } finally {
       if (mounted) {
@@ -78,6 +84,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
         body: Center(
           child: CircularProgressIndicator(
             color: Color(0xFF003366),
+          ),
+        ),
+      );
+    }
+
+    if (_authCheckError != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_off, size: 48, color: Colors.orange),
+                const SizedBox(height: 16),
+                Text(_authCheckError!, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _checkAuthAndRole,
+                  child: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
           ),
         ),
       );
