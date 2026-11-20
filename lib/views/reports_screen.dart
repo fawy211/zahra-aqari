@@ -80,7 +80,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
           double totalAmount = 0;
           for (var item in docs) {
             final amount = (item['amount'] ?? 0).toDouble();
-            totalAmount += amount;
+            // لا تدخل العمليات المعلقة أو الفاشلة ضمن إجمالي المبالغ المحصلة.
+            final status = item['status']?.toString() ?? 'completed';
+            if (status == 'completed') {
+              totalAmount += amount;
+            }
           }
 
           final currencyFormat =
@@ -94,7 +98,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
                 // 1. كارت الإجمالي المالي
                 _buildSummaryCard(
-                  title: "إجمالي المدفوعات والعمليات",
+                  title: "إجمالي المدفوعات المكتملة",
                   value: currencyFormat.format(totalAmount),
                   color: const Color(0xFF003366),
                 ),
