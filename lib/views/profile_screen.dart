@@ -294,20 +294,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         userModel.name.isNotEmpty ? userModel.name : email.split('@')[0];
     final String initial =
         displayName.isNotEmpty ? displayName[0].toUpperCase() : "U";
+    // رابط صورة الملف الشخصي محفوظ في Auth metadata.
+    final String avatarUrl =
+        _currentUser?.userMetadata?['avatar_url']?.toString() ?? '';
 
     return Column(
       children: [
         CircleAvatar(
           radius: 45,
           backgroundColor: const Color(0xFF003366).withOpacity(0.1),
-          child: Text(
-            initial,
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
-            ),
-          ),
+          backgroundImage:
+              avatarUrl.isEmpty ? null : NetworkImage(avatarUrl),
+          child: avatarUrl.isEmpty
+              ? Text(
+                  initial,
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF003366),
+                  ),
+                )
+              : null,
         ),
         const SizedBox(height: 12),
         Text(
