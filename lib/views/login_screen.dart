@@ -112,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _showForgotPasswordDialog(BuildContext context) async {
     final TextEditingController resetEmailController = TextEditingController();
 
-    return showDialog(
+    await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -200,6 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       },
     );
+    resetEmailController.dispose();
   }
 
   void _showSnackBar(String message, Color color) {
