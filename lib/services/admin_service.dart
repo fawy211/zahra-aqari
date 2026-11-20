@@ -20,7 +20,8 @@ class AdminService {
   }
 
   void _clearAdminCache() {
-    _clearAdminCache();
+    _cachedAdminData = null;
+    _cachedUserId = null;
     _adminCacheExpiresAt = null;
   }
 
@@ -213,7 +214,6 @@ class AdminService {
 
   /// مسح الكاش عند تسجيل الخروج
   void clearCache() {
-    _cachedAdminData = null;
-    _cachedUserId = null;
+    _clearAdminCache();
   }
 }
