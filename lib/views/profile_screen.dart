@@ -70,6 +70,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         profileRes = null;
       }
 
+      if (!mounted || _currentUser?.id != userId) return;
+
       if (profileRes != null) {
         _userModel = UserModel.fromMap(profileRes, userId);
       } else {
@@ -84,6 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // account_type القابل للكتابة من العميل.
       try {
         _isAdmin = await _adminService.isAdmin();
+        if (!mounted || _currentUser?.id != userId) return;
       } catch (_) {
         _isAdmin = false;
       }
@@ -95,6 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .select()
             .eq('user_id', userId)
             .maybeSingle();
+        if (!mounted || _currentUser?.id != userId) return;
         if (walletRes != null) {
           _walletData = walletRes;
         }
@@ -105,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _userModel = UserModel(uid: userId, email: email, name: 'مستخدم');
       _walletData = {'balance': 0, 'currency': 'ج.م'};
     } finally {
-      if (mounted) {
+      if (mounted && _currentUser?.id == userId) {
         setState(() => _isLoadingData = false);
       }
     }
