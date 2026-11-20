@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart' as intl;
+import '../services/chat_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -57,7 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   .from('messages')
                   .stream(primaryKey: ['id'])
                   .eq('chat_id', widget.chatId)
-                  .order('timestamp', ascending: false),
+                  .order('created_at', ascending: false),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -108,12 +109,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
                     var msg = docs[index];
-                    bool isMe = msg['senderId'] == currentUser?.id;
-                    String text = msg['text'] ?? '';
+                    bool isMe = msg['sender_id'] == currentUser?.id;
+                    String text = msg['content'] ?? '';
 
                     // معالجة التوقيت في Supabase (سواء كان String أو DateTime)
                     String timeStr = '';
-                    var rawTime = msg['timestamp'];
+                    var rawTime = msg['created_at'];
                     if (rawTime != null) {
                       DateTime? messageDate;
                       if (rawTime is String) {
@@ -248,25 +249,30 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     if (_controller.text.trim().isEmpty) return;
-    String text = _controller.text.trim();
+    final String text = _controller.text.trim();
+    final String? senderId = currentUser?.id;
+
+    if (senderId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى تسجيل الدخول لإرسال الرسالة'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     _controller.clear();
 
     try {
-      final currentTime = DateTime.now().toIso8601String();
-
-      // 1. إضافة الرسالة إلى جدول messages (تأكد من وجود عمود chat_id يربطها بالمحادثة)
-      await _supabase.from('messages').insert({
-        'chat_id': widget.chatId,
-        'text': text,
-        'senderId': currentUser?.id,
-        'timestamp': currentTime,
-      });
-
-      // 2. تحديث جدول المحادثات الرئيسي (chats) لتحديث آخر رسالة ووقت التحديث
-      await _supabase.from('chats').update({
-        'lastMessage': text,
-        'updatedAt': currentTime,
-      }).eq('id', widget.chatId);
+      // يكتب الأعمدة الحقيقية للجدولين: messages(chat_id, sender_id, content)
+      // و chats(updated_at).
+      await ChatService().sendMessage(
+        chatId: widget.chatId,
+        senderId: senderId,
+        content: text,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
