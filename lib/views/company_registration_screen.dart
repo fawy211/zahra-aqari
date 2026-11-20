@@ -69,13 +69,8 @@ class _CompanyRegistrationScreenState extends State<CompanyRegistrationScreen> {
         'createdAt': DateTime.now().toIso8601String(),
       });
 
-      // تحديث بيانات المستخدم الأساسية في جدول users لربطها بالاسم والدور مبدئياً
-      await supabase.from('users').upsert({
-        'id': user.id,
-        'companyName': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'role': 'company', // تعيين الدور كشركة قيد المراجعة
-      });
+      // لا نمنح الحساب دور شركة قبل مراجعة واعتماد طلب التوثيق.
+      // يظل طلب الشركة منفصلاً عن صلاحيات الحساب حتى يقرر الخادم/الإدارة اعتماده.
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
