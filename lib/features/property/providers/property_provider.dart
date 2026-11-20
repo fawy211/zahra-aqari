@@ -193,9 +193,13 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
         id: insertedData['id']?.toString(),
       );
 
-      state = state.copyWith(
-        properties: [createdProperty, ...state.properties],
-      );
+      // لا نضيف الإعلان المحلي إلى قائمة المستخدمين العامة إلا إذا كان موثقاً.
+      // الإعلان الجديد يكون pending، ويظهر بعد موافقة الإدارة وجلب القائمة مجدداً.
+      if (createdProperty.status == 'verified') {
+        state = state.copyWith(
+          properties: [createdProperty, ...state.properties],
+        );
+      }
 
       return true;
     } catch (e, stackTrace) {
