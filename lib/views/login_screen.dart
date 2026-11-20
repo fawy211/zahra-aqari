@@ -59,22 +59,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // حفظ بيانات المستخدم الإضافية في جدول profiles متوافقة تماماً مع الـ UserModel
         if (response.user != null) {
-          try {
-            await supabase.from('profiles').upsert({
-              'id': response.user!.id, // الـ UUID القادم من الـ Auth
-              'name': _nameController.text.trim(),
-              'email': _emailController.text.trim(),
-              'user_type': 'user', // القيمة الافتراضية لنوع المستخدم
-              'account_type':
-                  'individual', // القيمة الافتراضية لنوع الحساب (فردي)
-              'subscription_plan': 'free', // الباقة المجانية
-              'ads_count': 0, // عدد الإعلانات البداية
-              'is_verified_office': false, // ليس مكتب موثق افتراضياً
-              'created_at': DateTime.now().toIso8601String(),
-            });
-          } catch (profileError) {
-            debugPrint("ملاحظة بخصوص جدول profiles: $profileError");
-          }
+          await supabase.from('profiles').upsert({
+            'id': response.user!.id,
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'user_type': 'individual',
+            'account_type': 'individual',
+            'created_at': DateTime.now().toIso8601String(),
+          });
         }
 
         if (!mounted) return;
