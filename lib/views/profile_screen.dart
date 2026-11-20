@@ -277,17 +277,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 10),
-          const _SectionTitle("حساب الشركات"),
-          _ProfileTile(
-            icon: Icons.business_rounded,
-            title: "توثيق شركتي",
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const CompanyRegistrationScreen()),
+          if (_userModel!.accountType == 'company') ...[
+            const SizedBox(height: 10),
+            const _SectionTitle("حساب الشركات"),
+            _ProfileTile(
+              icon: Icons.business_rounded,
+              title: "توثيق شركتي",
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const CompanyRegistrationScreen()),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 20),
           _ProfileTile(
             icon: Icons.logout_rounded,
