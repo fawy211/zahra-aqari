@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'admin_panel_screen.dart';
+import '../services/admin_service.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -13,8 +14,9 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final AdminService _adminService = AdminService();
   bool _isLoading = true;
-  String? _userRole;
+  bool _isAdmin = false;
   bool _isAuthenticated = false;
 
   @override
@@ -38,31 +40,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
       if (session != null) {
         _isAuthenticated = true;
-        final userId = session.user.id;
-
-        // جلب نوع الحساب من جدول profiles الموحد
-        final response = await _supabase
-            .from('profiles')
-            .select('account_type, user_type')
-            .eq('id', userId)
-            .maybeSingle();
-
-        if (response != null) {
-          final accountType = response['account_type']?.toString();
-          final userType = response['user_type']?.toString();
-          _userRole = accountType == 'admin' || userType == 'admin'
-              ? 'admin'
-              : (accountType ?? userType ?? 'individual');
-        } else {
-          _userRole = 'individual'; // القيمة الافتراضية في حال عدم وجود سجل
-        }
+        // قرار الإدارة يُقرأ من جدول admins المتحكم به من الخادم، وليس من
+        // profiles.account_type القابل للكتابة من العميل، حتى لا يستطيع أي
+        // مستخدم منح نفسه صلاحية الإدارة.
+        _isAdmin = await _adminService.isAdmin();
       } else {
         _isAuthenticated = false;
-        _userRole = null;
+        _isAdmin = false;
       }
     } catch (e) {
       _isAuthenticated = false;
-      _userRole = null;
+      _isAdmin = false;
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -90,7 +78,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     // إذا كان المستخدم مسجلاً، نقوم بالتوجيه الذكي بناءً على الدور (Role)
-    if (_userRole == 'admin') {
+    if (_isAdmin) {
       return const AdminPanelScreen();
     } else {
       return const HomeScreen();
