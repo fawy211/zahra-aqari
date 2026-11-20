@@ -119,42 +119,83 @@ class PropertyService {
   /// إضافة عقار جديد مع رفع الصور للسيرفر تلقائياً وتخزين روابطها
   Future<bool> addProperty(
       PropertyModel property, List<String> imagePaths) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      debugPrint("تعذر إضافة العقار: لا يوجد مستخدم مسجل الدخول");
+      return false;
+    }
+
+    // نحتفظ بمسارات الملفات التي رفعناها نحن فقط حتى ننظفها عند فشل الإدخال.
+    final List<String> uploadedStoragePaths = [];
+
     try {
-      List<String> uploadedImageUrls = [];
+      final List<String> uploadedImageUrls = [];
 
-      // 1. رفع الصور إلى Supabase Storage باستخدام الـ bucket الموجود فعلياً
-      for (String path in imagePaths) {
-        // إذا كانت الصورة مسار محلي وليست رابطاً ويب بالفعل
-        if (!path.startsWith('http')) {
-          final file = File(path);
-          final fileName =
-              '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
-          final storagePath = 'properties/$fileName';
-
-          await _supabase.storage
-              .from('property_images')
-              .upload(storagePath, file);
-
-          final String publicUrl = _supabase.storage
-              .from('property_images')
-              .getPublicUrl(storagePath);
-          uploadedImageUrls.add(publicUrl);
-        } else {
+      for (final path in imagePaths) {
+        if (path.startsWith('http://') || path.startsWith('https://')) {
           uploadedImageUrls.add(path);
+          continue;
         }
+
+        final file = File(path);
+        if (!await file.exists()) {
+          throw Exception("ملف الصورة غير موجود");
+        }
+
+        final originalName = file.uri.pathSegments.isNotEmpty
+            ? file.uri.pathSegments.last
+            : 'image';
+        final safeName = originalName.replaceAll(
+          RegExp(r'[^a-zA-Z0-9._-]'),
+          '_',
+        );
+        final fileName =
+            '${DateTime.now().microsecondsSinceEpoch}_$safeName';
+        final storagePath = 'properties/$fileName';
+
+        await _supabase.storage
+            .from('property_images')
+            .upload(storagePath, file);
+
+        uploadedStoragePaths.add(storagePath);
+        uploadedImageUrls.add(
+          _supabase.storage.from('property_images').getPublicUrl(storagePath),
+        );
       }
 
-      // 2. تحديث قائمة الصور في بيانات العقار لتصبح روابط سحابية
-      final Map<String, dynamic> dataToInsert = property.toMap();
-      if (uploadedImageUrls.isNotEmpty) {
-        dataToInsert['images'] = uploadedImageUrls;
-      }
+      // لا نثق في قيم المالك أو التوثيق أو التمييز القادمة من كائن الشاشة.
+      // هذه حماية إضافية من جهة التطبيق، ويجب فرض الصلاحيات نفسها في RLS.
+      final Map<String, dynamic> dataToInsert = property.toMap()
+        ..remove('ownerId')
+        ..remove('owner_id')
+        ..remove('status')
+        ..remove('is_featured')
+        ..remove('featured_until')
+        ..remove('is_reported')
+        ..remove('report_count');
 
-      // 3. إدخال البيانات في جدول properties
+      dataToInsert['owner_id'] = user.id;
+      dataToInsert['status'] = 'pending';
+      dataToInsert['is_featured'] = false;
+      dataToInsert['is_reported'] = false;
+      dataToInsert['report_count'] = 0;
+      dataToInsert['images'] = uploadedImageUrls;
+
       await _supabase.from('properties').insert(dataToInsert);
       return true;
     } catch (e) {
       debugPrint("خطأ أثناء إضافة العقار: $e");
+
+      // لا نترك الصور التي رفعناها لهذه المحاولة إذا فشل حفظ الإعلان.
+      if (uploadedStoragePaths.isNotEmpty) {
+        try {
+          await _supabase.storage
+              .from('property_images')
+              .remove(uploadedStoragePaths);
+        } catch (cleanupError) {
+          debugPrint("تعذر تنظيف الصور المرفوعة بعد فشل الحفظ: $cleanupError");
+        }
+      }
       return false;
     }
   }
