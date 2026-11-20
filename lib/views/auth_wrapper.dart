@@ -21,6 +21,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isAdmin = false;
   bool _isAuthenticated = false;
   String? _authCheckError;
+  int _authCheckGeneration = 0;
   StreamSubscription<AuthState>? _authSubscription;
 
   @override
@@ -46,6 +47,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   Future<void> _checkAuthAndRole() async {
     if (!mounted) return;
+    final generation = ++_authCheckGeneration;
     setState(() {
       _isLoading = true;
       _authCheckError = null;
@@ -59,17 +61,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
         // قرار الإدارة يُقرأ من جدول admins المتحكم به من الخادم، وليس من
         // profiles.account_type القابل للكتابة من العميل، حتى لا يستطيع أي
         // مستخدم منح نفسه صلاحية الإدارة.
-        _isAdmin = await _adminService.isAdmin();
+        final adminResult = await _adminService.isAdmin();
+        if (!mounted || generation != _authCheckGeneration) return;
+        _isAdmin = adminResult;
       } else {
         _isAuthenticated = false;
         _isAdmin = false;
       }
     } catch (e) {
+      if (!mounted || generation != _authCheckGeneration) return;
       // لا نعتبر المستخدم خارج الجلسة بسبب فشل الشبكة/فحص الدور.
       _authCheckError = 'تعذر التحقق من الحساب والصلاحيات. تحقق من الاتصال وحاول مرة أخرى.';
       _isAdmin = false;
     } finally {
-      if (mounted) {
+      if (mounted && generation == _authCheckGeneration) {
         setState(() => _isLoading = false);
       }
     }
