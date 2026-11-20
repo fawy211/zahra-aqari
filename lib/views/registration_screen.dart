@@ -41,7 +41,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       // 1. إنشاء الحساب باستخدام Supabase Auth
       final AuthResponse res = await supabase.auth.signUp(
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        password: _passwordController.text,
         data: {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
