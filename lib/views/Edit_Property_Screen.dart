@@ -80,16 +80,21 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       updatedMetadata['finishing'] = _finishingController.text.trim();
 
       // 2. بناء كائن المودل المحدث باستخدام دالة copyWith الموجودة في المودل الأساسي
+      final parsedPrice = double.parse(_priceController.text.trim());
       final updatedModel = widget.property.copyWith(
         title: _titleController.text.trim(),
-        price: double.tryParse(_priceController.text.trim()) ??
-            widget.property.price,
+        price: parsedPrice,
         finishing: _finishingController.text.trim(),
         metadata: updatedMetadata,
       );
 
-      // 3. إرسال خريطة البيانات نظيفة تماماً إلى قاعدة البيانات عبر toMap() الأصلية
-      await _propertyService.updateProperty(propertyId, updatedModel.toMap());
+      // إرسال الحقول القابلة للتحرير فقط، وعدم إعادة إرسال owner/status/featured وغيرها.
+      await _propertyService.updateProperty(propertyId, {
+        'title': updatedModel.title,
+        'price': updatedModel.price,
+        'finishing': updatedModel.finishing,
+        'metadata': updatedMetadata,
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,9 +163,13 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                 keyboardType: TextInputType.number,
                 decoration:
                     _inputDecoration("السعر", Icons.attach_money_rounded),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? "يرجى إدخال السعر"
-                    : null,
+                validator: (value) {
+                  final parsed = double.tryParse(value?.trim() ?? '');
+                  if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                    return "أدخل سعراً رقمياً أكبر من صفر";
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
