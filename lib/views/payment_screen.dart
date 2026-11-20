@@ -64,21 +64,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       // 1. تحديث جدول العقارات في Supabase
       await supabase.from('properties').update({
-        'isFeatured': price > 0,
+        'is_featured': price > 0,
         if (days > 0)
-          'featuredExpiry':
+          'featured_until':
               DateTime.now().add(Duration(days: days)).toIso8601String(),
-        'package': packageTitle,
       }).eq('id', widget.propertyId);
 
       // 2. إدراج سجل العملية المالية في جدول payments في Supabase
       await supabase.from('payments').insert({
-        'userId': userId,
-        'propertyId': widget.propertyId,
+        'user_id': userId,
         'amount': price,
-        'days': days,
-        'packageName': packageTitle,
-        'paymentDate': DateTime.now().toIso8601String(),
         'status': 'completed',
       });
 
