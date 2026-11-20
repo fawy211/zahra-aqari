@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class InfoPagesView extends StatelessWidget {
+class InfoPagesView extends StatefulWidget {
   final String title;
   final String
       docId; // في Supabase يمكن أن يكون معرف نصي (slug) أو رقمي، حسب تصميم الجدول لديك
@@ -24,12 +24,34 @@ class InfoPagesView extends StatelessWidget {
   }
 
   @override
+  State<InfoPagesView> createState() => _InfoPagesViewState();
+}
+
+class _InfoPagesViewState extends State<InfoPagesView> {
+  late Future<Map<String, dynamic>?> _pageFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageFuture = _fetchPageContent();
+  }
+
+  void _retry() {
+    setState(() => _pageFuture = _fetchPageContent());
+  }
+
+  Future<Map<String, dynamic>?> _fetchPageContent() async {
+    final supabase = Supabase.instance.client;
+    return await supabase.from('pages').select().eq('id', widget.docId).maybeSingle();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          title,
+          widget.title,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -42,7 +64,7 @@ class InfoPagesView extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: _fetchPageContent(),
+        future: _pageFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -64,6 +86,11 @@ class InfoPagesView extends StatelessWidget {
                       "عذراً، حدث خطأ في تحميل الصفحة.",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 15, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _retry,
+                      child: const Text("إعادة المحاولة"),
                     ),
                   ],
                 ),
@@ -94,8 +121,10 @@ class InfoPagesView extends StatelessWidget {
           }
 
           // استخراج المحتوى من أعمدة Supabase (يمكن أن يكوناسم العمود 'content' أو 'text')
-          final String content =
-              data['content'] ?? data['text'] ?? "لا يوجد محتوى لعرضه.";
+          final contentValue = data['content'] ?? data['text'];
+          final String content = contentValue is String
+              ? contentValue
+              : contentValue?.toString() ?? "لا يوجد محتوى لعرضه.";
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
@@ -117,7 +146,7 @@ class InfoPagesView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    widget.title,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
