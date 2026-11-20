@@ -57,6 +57,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _processPayment(
       double price, int days, String packageTitle) async {
+    // لا تمنح التمييز ولا تسجل completed قبل تأكيد تحصيل من جهة دفع موثوقة.
+    if (price > 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                "الدفع الإلكتروني غير مربوط حالياً؛ لم يتم تفعيل الباقة أو خصم أي مبلغ."),
+            backgroundColor: Colors.orange.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
     try {
       final supabase = Supabase.instance.client;
