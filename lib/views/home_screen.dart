@@ -62,6 +62,8 @@ final filteredPropertiesProvider = FutureProvider.autoDispose
 
   // الواجهة العامة تعرض الإعلانات الموثقة فقط
   var query = supabase.from('properties').select('*').eq('status', 'verified');
+  // استبعاد الإعلانات التي انتهت صلاحيتها من نتائج البحث والفلاتر أيضًا.
+  query = query.or('expires_at.is.null,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}');
   final filters = params.advancedFilters;
 
   // Use actual database columns and tolerate legacy governorate/category values.
