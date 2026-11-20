@@ -13,10 +13,6 @@ class CompanyService {
         .order('created_at', ascending: false)
         .map((rows) {
           return rows.map((row) => CompanyModel.fromMap(row)).toList();
-        })
-        .handleError((error) {
-          debugPrint("خطأ في جلب الشركات العقارية: $error");
-          return <CompanyModel>[];
         });
   }
 
