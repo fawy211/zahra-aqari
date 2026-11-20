@@ -20,12 +20,13 @@ class AuthProvider with ChangeNotifier {
   // تهيئة والاستماع لتغيرات الدخول والخروج
   AuthProvider() {
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
-      final session = data.session;
-      if (session != null) {
+      // لا نحتفظ ببيانات الحساب السابق أثناء الانتقال إلى جلسة أخرى،
+      // حتى لو تعذر تحميل ملف الحساب الجديد.
+      _userProfile = null;
+      if (!_disposed) notifyListeners();
+
+      if (data.session != null) {
         fetchUserProfile();
-      } else {
-        _userProfile = null;
-        if (!_disposed) notifyListeners();
       }
     });
     if (currentUser != null) {
