@@ -41,7 +41,10 @@ class _CompaniesViewState extends State<CompaniesView> {
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               // الشركات محفوظة في جدول companies، لا في جدول users القديم.
-              stream: _supabase.from('companies').stream(primaryKey: ['id']),
+              stream: _supabase
+                  .from('companies')
+                  .stream(primaryKey: ['id'])
+                  .eq('status', 'verified'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
