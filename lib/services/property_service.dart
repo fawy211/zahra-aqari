@@ -163,10 +163,16 @@ class PropertyService {
   Future<void> updateProperty(
       String propertyId, Map<String, dynamic> updatedData) async {
     try {
-      await _supabase
+      final updatedRow = await _supabase
           .from('properties')
           .update(updatedData)
-          .eq('id', propertyId);
+          .eq('id', propertyId)
+          .select('id')
+          .maybeSingle();
+
+      if (updatedRow == null) {
+        throw Exception('لم يتم تحديث الإعلان. قد لا تملك صلاحية تعديله أو أنه غير موجود.');
+      }
     } catch (e) {
       debugPrint("خطأ أثناء تحديث العقار: $e");
       rethrow;
