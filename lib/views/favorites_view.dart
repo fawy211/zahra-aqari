@@ -36,6 +36,32 @@ class FavoritesView extends StatelessWidget {
             );
           }
 
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 42),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "تعذر تحميل العقارات المفضلة",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF003366)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "تحقق من اتصال الإنترنت وحاول مرة أخرى.\n${snapshot.error}",
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Padding(
@@ -76,8 +102,14 @@ class FavoritesView extends StatelessWidget {
             itemCount: favDocs.length,
             itemBuilder: (context, index) {
               final favData = favDocs[index];
-              final String propertyId =
-                  favData['propertyId'] ?? favData['property_id'];
+              final propertyId =
+                  (favData['property_id'] ?? favData['propertyId'])?.toString();
+
+              // تجاهل السجلات غير المكتملة بدلاً من تمرير null أو قيمة فارغة
+              // إلى استعلام العقارات أو استخدام مفتاح غير صالح في Dismissible.
+              if (propertyId == null || propertyId.trim().isEmpty) {
+                return const SizedBox.shrink();
+              }
 
               return FutureBuilder<Map<String, dynamic>?>(
                 future: Supabase.instance.client
@@ -105,6 +137,22 @@ class FavoritesView extends StatelessWidget {
                             color: Color(0xFF003366),
                           ),
                         ),
+                      ),
+                    );
+                  }
+
+                  if (propertySnapshot.hasError) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: const Text(
+                        "تعذر تحميل بيانات أحد العقارات المحفوظة",
+                        style: TextStyle(color: Colors.grey),
                       ),
                     );
                   }
