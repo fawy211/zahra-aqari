@@ -29,6 +29,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     // الاستماع لتغيرات حالة المصادقة في Supabase (تسجيل دخول / خروج)
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+      // لا نعيد استخدام صلاحيات إدارية مخزنة بعد تغير جلسة المصادقة.
+      _adminService.clearCache();
       if (mounted) {
         _checkAuthAndRole();
       }
