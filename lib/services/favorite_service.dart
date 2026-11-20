@@ -44,42 +44,39 @@ class FavoriteService {
     }
   }
 
-  /// التحقق هل العقار مفضل (Stream لتحديث الأيقونة لحظياً في الـ UI)
+  /// يتبع تدفق المفضلة جلسة الدخول الحالية، ويوقف تدفق الحساب السابق
+  /// تلقائياً عند تسجيل الخروج أو تبديل المستخدم.
   Stream<bool> isFavorite(String propertyId) {
-    final userId = _currentUserId;
-    if (userId.isEmpty) {
-      return Stream.value(false); // إذا لم يوجد مستخدم، فالعقار ليس مفضلاً
-    }
+    return _supabase.auth.onAuthStateChange.asyncExpand((_) {
+      final userId = _currentUserId;
+      if (userId.isEmpty) return Stream<bool>.value(false);
 
-    return _supabase
-        .from('favorites')
-        .stream(primaryKey: [
-          'id'
-        ]) // تأكد من أن جدول favorites يحتوي على عمود id كـ Primary Key
-        .eq('user_id', userId)
-        .map((rows) {
-          return rows.any((row) => row['property_id'] == propertyId);
-        })
-        .handleError((error) {
-          debugPrint("خطأ في تدفق المفضلة (isFavorite): $error");
-          return false;
-        });
+      return _supabase
+          .from('favorites')
+          .stream(primaryKey: ['id'])
+          .eq('user_id', userId)
+          .map((rows) => rows.any((row) => row['property_id'] == propertyId));
+    }).handleError((error) {
+      debugPrint("خطأ في تدفق المفضلة (isFavorite): $error");
+    });
   }
 
-  /// جلب كل مفضلات المستخدم (تُرجع قائمة بالبيانات كـ Stream)
+  /// جلب مفضلات المستخدم الحالي مع إعادة الربط تلقائياً عند تغير الجلسة.
   Stream<List<Map<String, dynamic>>> getFavorites() {
-    final userId = _currentUserId;
-    if (userId.isEmpty) return Stream.value([]);
+    return _supabase.auth.onAuthStateChange.asyncExpand((_) {
+      final userId = _currentUserId;
+      if (userId.isEmpty) {
+        return Stream<List<Map<String, dynamic>>>.value([]);
+      }
 
-    return _supabase
-        .from('favorites')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
-        .order('created_at', ascending: false) // ترتيب المفضلات من الأحدث
-        .map((rows) => rows.cast<Map<String, dynamic>>())
-        .handleError((error) {
-          debugPrint("خطأ في جلب المفضلات (getFavorites): $error");
-          return <Map<String, dynamic>>[];
-        });
+      return _supabase
+          .from('favorites')
+          .stream(primaryKey: ['id'])
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .map((rows) => rows.cast<Map<String, dynamic>>());
+    }).handleError((error) {
+      debugPrint("خطأ في جلب المفضلات (getFavorites): $error");
+    });
   }
 }
