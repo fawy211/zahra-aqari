@@ -7,10 +7,25 @@ import '../models/property_models.dart';
 class PropertyService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // دالة تعديل العقار
+  // دالة تعديل العقار: لا تسمح بتعديل إعلان لا يخص المستخدم الحالي.
   Future<void> updateProperty(
       String propertyId, Map<String, dynamic> data) async {
-    await _supabase.from('properties').update(data).eq('id', propertyId);
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('يجب تسجيل الدخول لتعديل الإعلان.');
+    }
+
+    final updated = await _supabase
+        .from('properties')
+        .update(data)
+        .eq('id', propertyId)
+        .eq('owner_id', userId)
+        .select('id')
+        .maybeSingle();
+
+    if (updated == null) {
+      throw Exception('لم يتم تعديل الإعلان. قد لا يكون تابعاً لحسابك أو لا توجد صلاحية.');
+    }
   }
 
   // دالة حذف العقار: قيد الحذف بمعرف المالك وتحقق من نجاح العملية.
