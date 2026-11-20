@@ -57,6 +57,8 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
       final response = await supabase
           .from('properties')
           .select()
+          // القوائم العامة تعرض الإعلانات الموثقة فقط
+          .eq('status', 'verified')
           .order('created_at', ascending: false)
           .range(from, to);
 
