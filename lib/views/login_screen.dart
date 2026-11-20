@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // 2. إنشاء حساب جديد عبر Supabase Auth
         final AuthResponse response = await supabase.auth.signUp(
           email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+          password: _passwordController.text,
           data: {
             'name': _nameController.text
                 .trim(), // حفظ الاسم في الـ metadata للمستخدم
