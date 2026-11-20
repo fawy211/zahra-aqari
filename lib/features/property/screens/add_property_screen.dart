@@ -193,6 +193,8 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
   }
 
   Future<void> _submitProperty() async {
+    // امنع بدء طلب رفع/نشر ثانٍ أثناء تنفيذ الطلب الحالي.
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
