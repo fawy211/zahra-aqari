@@ -58,19 +58,25 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // حفظ بيانات المستخدم الإضافية في جدول profiles متوافقة تماماً مع الـ UserModel
-        if (response.user != null) {
-          await supabase.from('profiles').upsert({
-            'id': response.user!.id,
-            'name': _nameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'user_type': 'individual',
-            'account_type': 'individual',
-            'created_at': DateTime.now().toIso8601String(),
-          });
+        final createdUser = response.user;
+        if (createdUser == null) {
+          throw Exception('لم يتم إنشاء حساب. حاول مرة أخرى.');
         }
 
+        await supabase.from('profiles').upsert({
+          'id': createdUser.id,
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'user_type': 'individual',
+          'account_type': 'individual',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+
         if (!mounted) return;
-        _showSnackBar("تم إنشاء الحساب بنجاح", Colors.green);
+        final message = response.session == null
+            ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني لإكمال تسجيل الدخول.'
+            : 'تم إنشاء الحساب بنجاح';
+        _showSnackBar(message, Colors.green);
       }
 
       // إعطاء فرصة قصيرة جداً لظهور الـ SnackBar بسلاسة قبل غلق الشاشة
