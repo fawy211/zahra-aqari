@@ -1,15 +1,40 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Edit_Property_Screen.dart';
 import '../services/property_service.dart';
 import '../models/property_models.dart';
 
-class MyPropertiesView extends StatelessWidget {
-  MyPropertiesView({super.key});
+class MyPropertiesView extends StatefulWidget {
+  const MyPropertiesView({super.key});
 
+  @override
+  State<MyPropertiesView> createState() => _MyPropertiesViewState();
+}
+
+class _MyPropertiesViewState extends State<MyPropertiesView> {
   final PropertyService _propertyService = PropertyService();
-  final String currentUserId =
-      Supabase.instance.client.auth.currentUser?.id ?? '';
+  final SupabaseClient _supabase = Supabase.instance.client;
+  late String currentUserId;
+  late final StreamSubscription<AuthState> _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = _supabase.auth.currentUser?.id ?? '';
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((authState) {
+      final nextUserId =
+          authState.session?.user.id ?? _supabase.auth.currentUser?.id ?? '';
+      if (!mounted || nextUserId == currentUserId) return;
+      setState(() => currentUserId = nextUserId);
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
