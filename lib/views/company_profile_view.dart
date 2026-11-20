@@ -54,7 +54,7 @@ class CompanyProfileView extends StatelessWidget {
               stream: supabase
                   .from('properties')
                   .stream(primaryKey: ['id'])
-                  .eq('ownerId', ownerId)
+                  .eq('owner_id', ownerId)
                   .eq('status', 'verified'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -100,7 +100,7 @@ class CompanyProfileView extends StatelessWidget {
                     final property =
                         PropertyModel.fromMap(data, id: propertyId);
                     final imageUrl =
-                        (data['imageUrl'] ?? data['image'] ?? '') as String;
+                        (data['imageUrl'] ?? data['image'] ?? '').toString();
                     return _buildPropertyCard(context, property, imageUrl);
                   },
                 );
