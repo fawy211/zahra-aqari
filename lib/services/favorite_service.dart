@@ -76,10 +76,6 @@ class FavoriteService {
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false) // ترتيب المفضلات من الأحدث
-        .map((rows) => rows.cast<Map<String, dynamic>>())
-        .handleError((error) {
-          debugPrint("خطأ في جلب المفضلات (getFavorites): $error");
-          return <Map<String, dynamic>>[];
-        });
+        .map((rows) => rows.cast<Map<String, dynamic>>());
   }
 }
