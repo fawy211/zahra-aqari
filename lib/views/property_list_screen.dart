@@ -59,18 +59,43 @@ class _PropertyListScreenState extends ConsumerState<PropertyListScreen> {
             )
           : propertyState.properties.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.home_outlined,
-                          size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
-                      Text(
-                        "لا توجد عقارات مضافة حالياً",
-                        style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 16),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          propertyState.errorMessage == null
+                              ? Icons.home_outlined
+                              : Icons.error_outline,
+                          size: 64,
+                          color: propertyState.errorMessage == null
+                              ? Colors.grey.shade400
+                              : Colors.redAccent,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          propertyState.errorMessage == null
+                              ? "لا توجد عقارات مضافة حالياً"
+                              : "تعذر تحميل العقارات. تحقق من اتصالك وحاول مرة أخرى.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: propertyState.errorMessage == null
+                                ? Colors.grey.shade600
+                                : Colors.redAccent,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (propertyState.errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () =>
+                                ref.read(propertyProvider.notifier).fetchMore(),
+                            child: const Text("إعادة المحاولة"),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 )
               : ListView.builder(
