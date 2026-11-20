@@ -210,9 +210,8 @@ class PropertyService {
         throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
       }
 
-      // تنظيف احتياطي بعد نجاح حذف إعلان يملكه المستخدم الحالي.
-      // يفضّل وجود FK ON DELETE CASCADE لضمان التنظيف الذري لكل المستخدمين.
-      await _supabase.from('favorites').delete().eq('property_id', propertyId);
+      // تنظيف المفضلات يجب أن يتم عبر FK ON DELETE CASCADE في قاعدة البيانات.
+      // لا نحذف مفضلات المستخدمين الآخرين من عميل المالك؛ ذلك يتطلب صلاحية إدارية/عملية ذرية.
     } catch (e) {
       debugPrint("خطأ أثناء حذف العقار: $e");
       rethrow;
