@@ -25,20 +25,24 @@ class AuthService {
 
       // 2. حفظ الأعمدة المعروفة فقط في profiles.
       // لا نكتب في users أو wallets قبل اعتماد مخططهما وسياسات RLS الخاصة بهما.
-      final role = (userMap['account_type'] ??
-              userMap['user_type'] ??
-              userMap['role'] ??
-              'individual')
-          .toString();
+      final requestedAccountType =
+          (userMap['account_type'] ?? userMap['user_type'] ?? 'individual')
+              .toString()
+              .trim()
+              .toLowerCase();
+      const allowedAccountTypes = {'individual', 'office', 'company'};
+      final accountType = allowedAccountTypes.contains(requestedAccountType)
+          ? requestedAccountType
+          : 'individual';
+
+      // نوع الحساب يحدد فئة المستخدم فقط؛ لا نقبل من العميل تحديد
+      // الاشتراك أو عدد الإعلانات أو حالة التوثيق.
       await _supabase.from('profiles').upsert({
         'id': uid,
         'email': email,
         'name': userMap['name'] ?? userMap['full_name'] ?? '',
-        'user_type': role,
-        'account_type': role,
-        'subscription_plan': userMap['subscription_plan'] ?? 'free',
-        'ads_count': userMap['ads_count'] ?? 0,
-        'is_verified_office': userMap['is_verified_office'] ?? false,
+        'user_type': accountType,
+        'account_type': accountType,
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
