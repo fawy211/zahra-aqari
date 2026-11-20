@@ -172,15 +172,21 @@ class PropertyService {
   Future<void> updateProperty(
       String propertyId, Map<String, dynamic> updatedData) async {
     try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('يجب تسجيل الدخول لتعديل الإعلان.');
+      }
+
       final updatedRow = await _supabase
           .from('properties')
           .update(updatedData)
           .eq('id', propertyId)
+          .eq('owner_id', userId)
           .select('id')
           .maybeSingle();
 
       if (updatedRow == null) {
-        throw Exception('لم يتم تحديث الإعلان. قد لا تملك صلاحية تعديله أو أنه غير موجود.');
+        throw Exception('لم يتم تعديل الإعلان. قد لا يكون تابعاً لحسابك أو لا توجد صلاحية.');
       }
     } catch (e) {
       debugPrint("خطأ أثناء تحديث العقار: $e");
