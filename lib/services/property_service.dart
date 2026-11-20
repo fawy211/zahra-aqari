@@ -163,10 +163,20 @@ class PropertyService {
   Future<void> updateProperty(
       String propertyId, Map<String, dynamic> updatedData) async {
     try {
-      await _supabase
+      final updatedRow = await _supabase
           .from('properties')
           .update(updatedData)
-          .eq('id', propertyId);
+          .eq('id', propertyId)
+          .select('id')
+          .maybeSingle();
+
+      // PostgREST may return no error when RLS filters the target row out.
+      // Do not report success unless a row was actually updated.
+      if (updatedRow == null) {
+        throw StateError(
+          'لم يتم تحديث الإعلان. قد لا يكون موجوداً أو لا تملك صلاحية تعديله.',
+        );
+      }
     } catch (e) {
       debugPrint("خطأ أثناء تحديث العقار: $e");
       rethrow;
