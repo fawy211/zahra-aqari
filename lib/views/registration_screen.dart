@@ -63,9 +63,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           'name': _nameController.text.trim(),
           'user_type': _selectedRole,
           'account_type': _selectedRole,
-          'subscription_plan': 'free',
-          'ads_count': 0,
-          'is_verified_office': false,
+          // بيانات الاشتراك والتوثيق لا يحددها العميل عند التسجيل.
           'created_at': DateTime.now().toIso8601String(),
         });
 
