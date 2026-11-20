@@ -201,9 +201,20 @@ class PropertyService {
         throw Exception('يجب تسجيل الدخول لتعديل الإعلان.');
       }
 
+      // Allowlist: لا تسمح لهذه الخدمة بتغيير المالك أو حالة المراجعة
+      // أو التمييز أو البلاغات أو تواريخ الصلاحية.
+      const allowedFields = {'title', 'price', 'finishing', 'metadata'};
+      final safeData = <String, dynamic>{
+        for (final entry in updatedData.entries)
+          if (allowedFields.contains(entry.key)) entry.key: entry.value,
+      };
+      if (safeData.isEmpty) {
+        throw Exception('لا توجد حقول مسموح بتحديثها.');
+      }
+
       final updatedRow = await _supabase
           .from('properties')
-          .update(updatedData)
+          .update(safeData)
           .eq('id', propertyId)
           .eq('owner_id', userId)
           .select('id')
