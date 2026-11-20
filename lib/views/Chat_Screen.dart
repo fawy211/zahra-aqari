@@ -36,6 +36,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // امنع فتح واجهة الرسائل دون جلسة مصادقة؛ وتظل RLS هي الحماية الفعلية للبيانات.
+    if (currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('المحادثة'),
+          backgroundColor: const Color(0xFF003366),
+        ),
+        body: const Center(
+          child: Text('يرجى تسجيل الدخول لعرض المحادثة وإرسال الرسائل'),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -248,7 +261,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_isSending || _controller.text.trim().isEmpty) return;
+    if (currentUser == null ||
+        _isSending ||
+        _controller.text.trim().isEmpty) {
+      return;
+    }
     final text = _controller.text.trim();
 
     setState(() => _isSending = true);
@@ -259,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
       await _supabase.from('messages').insert({
         'chat_id': widget.chatId,
         'text': text,
-        'senderId': currentUser?.id,
+        'senderId': currentUser!.id,
         'timestamp': currentTime,
       });
 
