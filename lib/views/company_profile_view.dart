@@ -54,7 +54,7 @@ class CompanyProfileView extends StatelessWidget {
               stream: supabase
                   .from('properties')
                   .stream(primaryKey: ['id'])
-                  .eq('ownerId', ownerId)
+                  .eq('owner_id', ownerId)
                   .eq('status', 'verified'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
