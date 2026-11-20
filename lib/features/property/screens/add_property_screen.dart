@@ -328,7 +328,7 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("تم النشر بنجاح على Supabase!")));
+            const SnackBar(content: Text("تم استلام الإعلان وإرساله للمراجعة. سيظهر للمستخدمين بعد موافقة الإدارة.")));
         Navigator.pop(context);
       } else {
         _showErrorDialog(
