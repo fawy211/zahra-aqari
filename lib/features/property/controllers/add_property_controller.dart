@@ -180,9 +180,20 @@ class AddPropertyNotifier extends Notifier<PropertyFormState> {
         propertyData.remove('report_count');
         propertyData.remove('expires_at');
         propertyData.remove('featured_until');
+        // نفس قائمة الحقول المسموح بها في PropertyService؛ لا نرسل
+        // حقولاً غير قابلة للتحرير من هذا المسار البديل.
+        const editableFields = {'title', 'price', 'finishing', 'metadata'};
+        final safeUpdate = <String, dynamic>{
+          for (final entry in propertyData.entries)
+            if (editableFields.contains(entry.key)) entry.key: entry.value,
+        };
+        if (safeUpdate.isEmpty) {
+          throw Exception('لا توجد بيانات مسموح بتعديلها.');
+        }
+
         final updated = await supabase
             .from('properties')
-            .update(propertyData)
+            .update(safeUpdate)
             .eq('id', propertyId)
             .eq('owner_id', currentUserId)
             .select('id')
