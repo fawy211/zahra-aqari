@@ -8,15 +8,15 @@ class PropertyService {
 
   /// جلب كل العقارات النشطة وغير المنتهية الصلاحية
   Stream<List<PropertyModel>> getActiveProperties() {
-    final nowIso = DateTime.now().toIso8601String();
     return _supabase.from('properties').stream(primaryKey: ['id']).map((rows) {
-      // فلترة العقارات التي لم تنتهي صلاحيتها وتثبيت الترتيب محلياً للـ Stream
+      // مقارنة التواريخ كـ DateTime لتجنب أخطاء مقارنة النصوص واختلاف المناطق الزمنية.
+      final now = DateTime.now().toUtc();
       final activeRows = rows.where((row) {
-        // القوائم العامة تعرض الإعلانات الموثقة فقط
         if (row['status'] != 'verified') return false;
-        final expiresAt = row['expires_at']?.toString();
-        if (expiresAt == null) return true;
-        return expiresAt.compareTo(nowIso) > 0;
+        final rawExpiry = row['expires_at']?.toString();
+        if (rawExpiry == null || rawExpiry.isEmpty) return true;
+        final expiry = DateTime.tryParse(rawExpiry)?.toUtc();
+        return expiry != null && expiry.isAfter(now);
       }).toList();
 
       // الترتيب: حسب تاريخ الإنشاء من الأحدث
@@ -37,15 +37,20 @@ class PropertyService {
 
   /// جلب عقارات مميزة (Featured Properties)
   Stream<List<PropertyModel>> getFeaturedProperties() {
-    final nowIso = DateTime.now().toIso8601String();
     return _supabase.from('properties').stream(primaryKey: ['id']).map((rows) {
+      final now = DateTime.now().toUtc();
       final featuredRows = rows.where((row) {
-        // القوائم العامة تعرض الإعلانات الموثقة فقط
         if (row['status'] != 'verified') return false;
+        final rawExpiry = row['expires_at']?.toString();
+        if (rawExpiry != null && rawExpiry.isNotEmpty) {
+          final expiry = DateTime.tryParse(rawExpiry)?.toUtc();
+          if (expiry == null || !expiry.isAfter(now)) return false;
+        }
         final isFeatured = row['is_featured'] == true;
-        final featuredUntil = row['featured_until']?.toString();
-        if (!isFeatured || featuredUntil == null) return false;
-        return featuredUntil.compareTo(nowIso) > 0;
+        final rawFeaturedUntil = row['featured_until']?.toString();
+        if (!isFeatured || rawFeaturedUntil == null) return false;
+        final featuredUntil = DateTime.tryParse(rawFeaturedUntil)?.toUtc();
+        return featuredUntil != null && featuredUntil.isAfter(now);
       }).toList();
 
       return featuredRows
@@ -65,7 +70,11 @@ class PropertyService {
   }) async {
     try {
       // البحث العام يعرض الإعلانات الموثقة فقط
-      dynamic query = _supabase.from('properties').select().eq('status', 'verified');
+      dynamic query = _supabase
+          .from('properties')
+          .select()
+          .eq('status', 'verified')
+          .or('expires_at.is.null,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}');
 
       // تم التعديل من 'governorate' إلى 'gov' ليتطابق مع قاعدة البيانات واسم الحقل في الموديل
       if (governorate != null && governorate.isNotEmpty) {
