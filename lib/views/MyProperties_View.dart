@@ -1,23 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Edit_Property_Screen.dart';
+import '../services/property_service.dart';
 import '../models/property_models.dart';
-
-// تعريف كلاس الخدمة للتعامل مع قاعدة بيانات Supabase
-class PropertyService {
-  final SupabaseClient _supabase = Supabase.instance.client;
-
-  // دالة تعديل العقار
-  Future<void> updateProperty(
-      String propertyId, Map<String, dynamic> data) async {
-    await _supabase.from('properties').update(data).eq('id', propertyId);
-  }
-
-  // دالة حذف العقار
-  Future<void> deleteProperty(String propertyId) async {
-    await _supabase.from('properties').delete().eq('id', propertyId);
-  }
-}
 
 class MyPropertiesView extends StatelessWidget {
   MyPropertiesView({super.key});

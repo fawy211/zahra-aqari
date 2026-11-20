@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/admin_service.dart';
 
 class AdminVerificationScreen extends StatelessWidget {
   const AdminVerificationScreen({super.key});
@@ -173,6 +174,18 @@ class AdminVerificationScreen extends StatelessWidget {
   // مربع حوار تأكيد الإجراء بشكل احترافي
   Future<void> _confirmAction(BuildContext context, String id, String status,
       String statusLabel) async {
+    final bool isAdmin = await AdminService().isAdmin();
+    if (!isAdmin) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('غير مصرح لك بمراجعة الإعلانات.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
     final bool isVerified = status == 'verified';
 
     final confirmed = await showDialog<bool>(
@@ -219,10 +232,27 @@ class AdminVerificationScreen extends StatelessWidget {
       try {
         final SupabaseClient supabase = Supabase.instance.client;
 
-        // تنفيذ التحديث باستخدام جدول Supabase
-        await supabase
+        // عند اعتماد الإعلان نمنحه مدة عرض أولية 90 يوماً.
+        // يجب تقييد هذا التحديث بصلاحيات المشرف عبر Supabase RLS أيضاً.
+        final updateData = <String, dynamic>{'status': status};
+        if (isVerified) {
+          updateData['expires_at'] = DateTime.now()
+              .toUtc()
+              .add(const Duration(days: 90))
+              .toIso8601String();
+        }
+
+        final updated = await supabase
             .from('properties')
-            .update({'status': status}).eq('id', id);
+            .update(updateData)
+            .eq('id', id)
+            .eq('status', 'pending')
+            .select('id')
+            .maybeSingle();
+
+        if (updated == null) {
+          throw Exception('لم يتم تحديث الإعلان؛ تحقق من الصلاحيات وحالة الإعلان.');
+        }
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

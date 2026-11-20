@@ -36,6 +36,26 @@ class FavoritesView extends StatelessWidget {
             );
           }
 
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 42),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'تعذر تحميل المفضلة. تحقق من اتصالك وحاول مرة أخرى.',
+                      textAlign: TextAlign.center,
+                    ),
+
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Padding(
@@ -77,7 +97,7 @@ class FavoritesView extends StatelessWidget {
             itemBuilder: (context, index) {
               final favData = favDocs[index];
               final String propertyId =
-                  favData['propertyId'] ?? favData['property_id'];
+                  (favData['property_id'] ?? favData['propertyId'] ?? '').toString();
 
               return FutureBuilder<Map<String, dynamic>?>(
                 future: Supabase.instance.client
@@ -122,7 +142,8 @@ class FavoritesView extends StatelessWidget {
                   final property = PropertyModel.fromMap(mergedData);
                   final String imageUrl = (propData['imageUrl'] ??
                       propData['image'] ??
-                      '') as String;
+                      '')
+                  .toString();
 
                   return Dismissible(
                     key: Key(propertyId),
@@ -141,8 +162,19 @@ class FavoritesView extends StatelessWidget {
                         size: 28,
                       ),
                     ),
-                    onDismissed: (direction) {
-                      _service.toggleFavorite(propertyId);
+                    onDismissed: (direction) async {
+                      try {
+                        await _service.toggleFavorite(propertyId);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'تعذر إزالة العقار من المفضلة: $error',
+                            ),
+                          ),
+                        );
+                      }
                     },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -236,8 +268,20 @@ class FavoritesView extends StatelessWidget {
                                     Icons.favorite_rounded,
                                     color: Colors.redAccent,
                                   ),
-                                  onPressed: () =>
-                                      _service.toggleFavorite(propertyId),
+                                  onPressed: () async {
+                                    try {
+                                      await _service.toggleFavorite(propertyId);
+                                    } catch (error) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'تعذر تحديث المفضلة: $error',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                               ],
                             ),

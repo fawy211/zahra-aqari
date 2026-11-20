@@ -57,57 +57,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _processPayment(
       double price, int days, String packageTitle) async {
-    setState(() => _isProcessing = true);
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
-
-      // 1. تحديث جدول العقارات في Supabase
-      await supabase.from('properties').update({
-        'isFeatured': price > 0,
-        if (days > 0)
-          'featuredExpiry':
-              DateTime.now().add(Duration(days: days)).toIso8601String(),
-        'package': packageTitle,
-      }).eq('id', widget.propertyId);
-
-      // 2. إدراج سجل العملية المالية في جدول payments في Supabase
-      await supabase.from('payments').insert({
-        'userId': userId,
-        'propertyId': widget.propertyId,
-        'amount': price,
-        'days': days,
-        'packageName': packageTitle,
-        'paymentDate': DateTime.now().toIso8601String(),
-        'status': 'completed',
-      });
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("تم الاشتراك في $packageTitle بنجاح!"),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } catch (e) {
+    // لا توجد بوابة دفع أو تفعيل مجاني موثوق لهذا المسار حتى الآن.
+    // لا نسجل completed ولا نغير بيانات العقار من تطبيق العميل.
+    if (price > 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("خطأ: $e"),
-            backgroundColor: Colors.red.shade700,
+            content: const Text(
+                "الدفع الإلكتروني غير مربوط حالياً؛ لم يتم تفعيل الباقة أو خصم أي مبلغ."),
+            backgroundColor: Colors.orange.shade800,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
+      return;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              "الخدمة المجانية لا تمنح تمييزاً للعقار. لم يتم إنشاء عملية دفع أو تغيير بيانات الإعلان."),
+          backgroundColor: Colors.blueGrey.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

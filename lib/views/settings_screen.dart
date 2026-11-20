@@ -142,15 +142,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text("الإشعارات",
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  subtitle: const Text("استقبال تنبيهات العقارات والرسائل",
+                  subtitle: const Text("الميزة غير مفعلة حاليًا",
                       style: TextStyle(fontSize: 12, color: Colors.grey)),
                   value: _notificationsEnabled,
                   activeColor: const Color(0xFFC5A059),
-                  onChanged: (v) {
-                    setState(() {
-                      _notificationsEnabled = v;
-                    });
-                  },
+                  onChanged: null,
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
@@ -177,9 +173,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           size: 14, color: Colors.grey),
                     ],
                   ),
-                  onTap: () {
-                    // نافذة تغيير اللغة مستقبلاً
-                  },
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("تغيير اللغة غير متاح حاليًا")),
+                  ),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 SwitchListTile(
@@ -195,15 +191,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text("الوضع الليلي",
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  subtitle: const Text("تفعيل المظهر الداكن",
+                  subtitle: const Text("الميزة غير مفعلة حاليًا",
                       style: TextStyle(fontSize: 12, color: Colors.grey)),
                   value: _darkModeEnabled,
                   activeColor: const Color(0xFFC5A059),
-                  onChanged: (v) {
-                    setState(() {
-                      _darkModeEnabled = v;
-                    });
-                  },
+                  onChanged: null,
                 ),
               ],
             ),
@@ -244,7 +236,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded,
                       size: 14, color: Colors.grey),
-                  onTap: () {},
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("صفحة سياسة الخصوصية غير مربوطة حاليًا")),
+                  ),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(

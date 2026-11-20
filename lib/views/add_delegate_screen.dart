@@ -101,9 +101,12 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
                       const BorderSide(color: Color(0xFF003366), width: 1.5),
                 ),
               ),
-              validator: (v) => v == null || !v.contains('@')
-                  ? "يرجى إدخال بريد إلكتروني صحيح"
-                  : null,
+              validator: (v) {
+                final email = v?.trim() ?? '';
+                final valid =
+                    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+                return valid ? null : "يرجى إدخال بريد إلكتروني صحيح";
+              },
             ),
             const SizedBox(height: 24),
             const Text(

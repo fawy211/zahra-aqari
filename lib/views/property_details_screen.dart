@@ -732,9 +732,30 @@ class _DetailsScreenState extends State<DetailsScreen> {
               subtitle: const Text("دردشة مباشرة مع مالك العقار",
                   style: TextStyle(fontSize: 12)),
               onTap: () {
+                if (currentUserId.isEmpty) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(
+                      content: Text('يرجى تسجيل الدخول لبدء محادثة'),
+                    ),
+                  );
+                  return;
+                }
+                if (currentUserId == _currentProperty.ownerId) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(
+                      content: Text('لا يمكنك بدء محادثة مع نفسك'),
+                    ),
+                  );
+                  return;
+                }
+
+                // ملاحظة: هذا المعرف المركب لا ينشئ سجل chats؛ يلزم
+                // استبداله بعملية backend موثوقة بعد تأكيد مخطط المحادثات.
                 Navigator.pop(context);
                 Navigator.push(
-                  context,
+                  this.context,
                   MaterialPageRoute(
                     builder: (_) => ChatScreen(
                       chatId:

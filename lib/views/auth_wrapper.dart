@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'home_screen.dart';
@@ -18,6 +20,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoading = true;
   bool _isAdmin = false;
   bool _isAuthenticated = false;
+  String? _authCheckError;
+  int _authCheckGeneration = 0;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
@@ -25,15 +30,28 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _checkAuthAndRole();
 
     // الاستماع لتغيرات حالة المصادقة في Supabase (تسجيل دخول / خروج)
-    _supabase.auth.onAuthStateChange.listen((data) {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+      // لا نعيد استخدام صلاحيات إدارية مخزنة بعد تغير جلسة المصادقة.
+      _adminService.clearCache();
       if (mounted) {
         _checkAuthAndRole();
       }
     });
   }
 
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _checkAuthAndRole() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+    final generation = ++_authCheckGeneration;
+    setState(() {
+      _isLoading = true;
+      _authCheckError = null;
+    });
 
     try {
       final session = _supabase.auth.currentSession;
@@ -43,16 +61,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
         // قرار الإدارة يُقرأ من جدول admins المتحكم به من الخادم، وليس من
         // profiles.account_type القابل للكتابة من العميل، حتى لا يستطيع أي
         // مستخدم منح نفسه صلاحية الإدارة.
-        _isAdmin = await _adminService.isAdmin();
+        final adminResult = await _adminService.isAdmin();
+        if (!mounted || generation != _authCheckGeneration) return;
+        _isAdmin = adminResult;
       } else {
         _isAuthenticated = false;
         _isAdmin = false;
       }
     } catch (e) {
-      _isAuthenticated = false;
+      if (!mounted || generation != _authCheckGeneration) return;
+      // لا نعتبر المستخدم خارج الجلسة بسبب فشل الشبكة/فحص الدور.
+      _authCheckError = 'تعذر التحقق من الحساب والصلاحيات. تحقق من الاتصال وحاول مرة أخرى.';
       _isAdmin = false;
     } finally {
-      if (mounted) {
+      if (mounted && generation == _authCheckGeneration) {
         setState(() => _isLoading = false);
       }
     }
@@ -67,6 +89,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
         body: Center(
           child: CircularProgressIndicator(
             color: Color(0xFF003366),
+          ),
+        ),
+      );
+    }
+
+    if (_authCheckError != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_off, size: 48, color: Colors.orange),
+                const SizedBox(height: 16),
+                Text(_authCheckError!, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _checkAuthAndRole,
+                  child: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
           ),
         ),
       );

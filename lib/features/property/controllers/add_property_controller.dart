@@ -98,19 +98,31 @@ class AddPropertyNotifier extends Notifier<PropertyFormState> {
     try {
       final supabase = Supabase.instance.client;
 
-      // جلب معرف المستخدم الحقيقي إن وجد
+      // لا تسمح بإضافة أو تعديل إعلان دون جلسة مستخدم موثقة.
       final String? currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null || currentUserId.isEmpty) {
+        throw Exception('يجب تسجيل الدخول لإضافة الإعلان أو تعديله.');
+      }
 
       final String categoryName =
           state.selectedCategory?.name ?? formData['category'] ?? '';
       final String categoryCode =
           state.selectedCategory?.code ?? formData['category_code'] ?? '';
-      final double priceVal =
-          double.tryParse(formData['price']?.toString() ?? '0') ?? 0.0;
-      final double areaVal = double.tryParse(
-              formData['area']?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ??
-                  '0') ??
-          0.0;
+      final double? parsedPrice =
+          double.tryParse(formData['price']?.toString().trim() ?? '');
+      final double? parsedArea = double.tryParse(
+          formData['area']?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ??
+              '');
+      if (parsedPrice == null ||
+          !parsedPrice.isFinite ||
+          parsedPrice <= 0 ||
+          parsedArea == null ||
+          !parsedArea.isFinite ||
+          parsedArea <= 0) {
+        throw Exception('أدخل سعراً ومساحة صحيحين أكبر من صفر.');
+      }
+      final double priceVal = parsedPrice;
+      final double areaVal = parsedArea;
 
       final String govVal = formData['gov'] ?? '';
       final String cityVal = formData['city'] ?? '';
@@ -152,8 +164,6 @@ class AddPropertyNotifier extends Notifier<PropertyFormState> {
         'phone': phone,
         'images': state.mediaUrls,
         'metadata': metadataMap,
-        if (currentUserId != null && currentUserId.isNotEmpty)
-          'owner_id': currentUserId,
         'rooms': formData['rooms']?.toString(),
         'floor': formData['floor']?.toString(),
         'code': formData['code']?.toString(),
@@ -162,14 +172,42 @@ class AddPropertyNotifier extends Notifier<PropertyFormState> {
       };
 
       if (propertyId != null && propertyId.isNotEmpty) {
-        // تحديث العقار إذا كان مُعرفه موجوداً (عملية تعديل)
-        await supabase
+        // لا نسمح بتغيير المالك أو حالة المراجعة من مسار تعديل الإعلان.
+        propertyData.remove('owner_id');
+        propertyData.remove('status');
+        propertyData.remove('is_featured');
+        propertyData.remove('is_reported');
+        propertyData.remove('report_count');
+        propertyData.remove('expires_at');
+        propertyData.remove('featured_until');
+        // نفس قائمة الحقول المسموح بها في PropertyService؛ لا نرسل
+        // حقولاً غير قابلة للتحرير من هذا المسار البديل.
+        const editableFields = {'title', 'price', 'finishing', 'metadata'};
+        final safeUpdate = <String, dynamic>{
+          for (final entry in propertyData.entries)
+            if (editableFields.contains(entry.key)) entry.key: entry.value,
+        };
+        if (safeUpdate.isEmpty) {
+          throw Exception('لا توجد بيانات مسموح بتعديلها.');
+        }
+
+        final updated = await supabase
             .from('properties')
-            .update(propertyData)
-            .eq('id', propertyId);
+            .update(safeUpdate)
+            .eq('id', propertyId)
+            .eq('owner_id', currentUserId)
+            .select('id')
+            .maybeSingle();
+        if (updated == null) {
+          throw Exception('لم يتم تعديل الإعلان؛ تأكد أنه تابع لحسابك.');
+        }
       } else {
-        // إرسال البيانات مباشرة كإضافة جديدة إلى جدول 'properties'
+        // الإعلانات الجديدة تدخل المراجعة دائماً ولا يحدد العميل صلاحياتها.
+        propertyData['owner_id'] = currentUserId;
+        propertyData['status'] = 'pending';
         propertyData['is_featured'] = false;
+        propertyData['is_reported'] = false;
+        propertyData['report_count'] = 0;
         await supabase.from('properties').insert(propertyData);
       }
 

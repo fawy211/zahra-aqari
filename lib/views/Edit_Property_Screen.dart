@@ -75,21 +75,32 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       // 1. تحديث الـ metadata بحرص لتجنب التكرار ودمج القيم الجديدة مع القديمة نظيفة
       final updatedMetadata =
           Map<String, dynamic>.from(widget.property.metadata);
-      updatedMetadata['floor'] = _floorController.text.trim();
-      updatedMetadata['rooms'] = _roomsController.text.trim();
-      updatedMetadata['finishing'] = _finishingController.text.trim();
+      final floorValue = _floorController.text.trim();
+      final roomsValue = _roomsController.text.trim();
+      final finishingValue = _finishingController.text.trim();
+      updatedMetadata['floor'] = floorValue;
+      updatedMetadata['rooms'] = roomsValue;
+      updatedMetadata['finishing'] = finishingValue;
 
       // 2. بناء كائن المودل المحدث باستخدام دالة copyWith الموجودة في المودل الأساسي
+      final parsedPrice = double.parse(_priceController.text.trim());
       final updatedModel = widget.property.copyWith(
         title: _titleController.text.trim(),
-        price: double.tryParse(_priceController.text.trim()) ??
-            widget.property.price,
-        finishing: _finishingController.text.trim(),
+        price: parsedPrice,
+        finishing: finishingValue,
         metadata: updatedMetadata,
       );
 
-      // 3. إرسال خريطة البيانات نظيفة تماماً إلى قاعدة البيانات عبر toMap() الأصلية
-      await _propertyService.updateProperty(propertyId, updatedModel.toMap());
+      // تحديث الأعمدة المباشرة والـ metadata معاً حتى لا تظهر قيم قديمة
+      // لأن PropertyModel يقرأ بعض الحقول المباشرة قبل قيم metadata.
+      await _propertyService.updateProperty(propertyId, {
+        'title': updatedModel.title,
+        'price': updatedModel.price,
+        'finishing': updatedModel.finishing,
+        'metadata': updatedMetadata,
+        'floor': floorValue,
+        'rooms': roomsValue,
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,9 +169,13 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
                 keyboardType: TextInputType.number,
                 decoration:
                     _inputDecoration("السعر", Icons.attach_money_rounded),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? "يرجى إدخال السعر"
-                    : null,
+                validator: (value) {
+                  final parsed = double.tryParse(value?.trim() ?? '');
+                  if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                    return "أدخل سعراً رقمياً أكبر من صفر";
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(

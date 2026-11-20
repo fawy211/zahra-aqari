@@ -27,7 +27,7 @@ class CompanyDashboardView extends StatelessWidget {
         // استخدام Supabase Stream لجلب العقارات الخاصة بالمستخدم الحالي بشكل حي
         stream: supabase
             .from('properties')
-            .stream(primaryKey: ['id']).eq('ownerId', currentUserId),
+            .stream(primaryKey: ['id']).eq('owner_id', currentUserId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(

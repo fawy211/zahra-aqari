@@ -193,6 +193,8 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
   }
 
   Future<void> _submitProperty() async {
+    // امنع بدء طلب رفع/نشر ثانٍ أثناء تنفيذ الطلب الحالي.
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -326,7 +328,7 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("تم النشر بنجاح على Supabase!")));
+            const SnackBar(content: Text("تم استلام الإعلان وإرساله للمراجعة. سيظهر للمستخدمين بعد موافقة الإدارة.")));
         Navigator.pop(context);
       } else {
         _showErrorDialog(
@@ -652,8 +654,13 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
                 suffixStyle: TextStyle(
                     color: Colors.grey.shade600, fontWeight: FontWeight.bold),
               ),
-              validator: (val) =>
-                  val == null || val.isEmpty ? 'يرجى إدخال السعر' : null,
+              validator: (val) {
+                final parsed = double.tryParse(val?.trim() ?? '');
+                if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                  return 'أدخل سعراً رقمياً أكبر من صفر';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -678,8 +685,13 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
                 suffixStyle: TextStyle(
                     color: Colors.grey.shade600, fontWeight: FontWeight.bold),
               ),
-              validator: (val) =>
-                  val == null || val.isEmpty ? 'يرجى إدخال المساحة' : null,
+              validator: (val) {
+                final parsed = double.tryParse(val?.trim() ?? '');
+                if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                  return 'أدخل مساحة رقمية أكبر من صفر';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             if (_isResidential || _isFieldEnabled('rooms')) ...[

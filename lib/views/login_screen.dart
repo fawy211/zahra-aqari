@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // 1. تسجيل الدخول عبر Supabase
         await supabase.auth.signInWithPassword(
           email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+          password: _passwordController.text,
         );
 
         if (!mounted) return;
@@ -58,27 +58,25 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // حفظ بيانات المستخدم الإضافية في جدول profiles متوافقة تماماً مع الـ UserModel
-        if (response.user != null) {
-          try {
-            await supabase.from('profiles').upsert({
-              'id': response.user!.id, // الـ UUID القادم من الـ Auth
-              'name': _nameController.text.trim(),
-              'email': _emailController.text.trim(),
-              'user_type': 'user', // القيمة الافتراضية لنوع المستخدم
-              'account_type':
-                  'individual', // القيمة الافتراضية لنوع الحساب (فردي)
-              'subscription_plan': 'free', // الباقة المجانية
-              'ads_count': 0, // عدد الإعلانات البداية
-              'is_verified_office': false, // ليس مكتب موثق افتراضياً
-              'created_at': DateTime.now().toIso8601String(),
-            });
-          } catch (profileError) {
-            debugPrint("ملاحظة بخصوص جدول profiles: $profileError");
-          }
+        final createdUser = response.user;
+        if (createdUser == null) {
+          throw Exception('لم يتم إنشاء حساب. حاول مرة أخرى.');
         }
 
+        await supabase.from('profiles').upsert({
+          'id': createdUser.id,
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'user_type': 'individual',
+          'account_type': 'individual',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+
         if (!mounted) return;
-        _showSnackBar("تم إنشاء الحساب بنجاح", Colors.green);
+        final message = response.session == null
+            ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني لإكمال تسجيل الدخول.'
+            : 'تم إنشاء الحساب بنجاح';
+        _showSnackBar(message, Colors.green);
       }
 
       // إعطاء فرصة قصيرة جداً لظهور الـ SnackBar بسلاسة قبل غلق الشاشة
@@ -120,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _showForgotPasswordDialog(BuildContext context) async {
     final TextEditingController resetEmailController = TextEditingController();
 
-    return showDialog(
+    await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -208,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       },
     );
+    resetEmailController.dispose();
   }
 
   void _showSnackBar(String message, Color color) {

@@ -285,15 +285,23 @@ class ReportsReviewScreen extends StatelessWidget {
                         label: const Text("اعتماد الإعلان",
                             style: TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          _adminService.resolveReport(property.id!,
-                              delete: false);
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    "تم اعتماد الإعلان وإزالة البلاغات بنجاح")),
-                          );
+                        onPressed: () async {
+                          try {
+                            await _adminService.resolveReport(property.id!,
+                                delete: false);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      "تمت معالجة البلاغ وإزالة علامته بنجاح")),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("تعذرت معالجة البلاغ: $e")),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -356,13 +364,22 @@ class ReportsReviewScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () {
-              _adminService.resolveReport(id, delete: true);
-              Navigator.pop(context); // إغلاق الـ Dialog
-              Navigator.pop(context); // إغلاق شاشة التفاصيل
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("تم حذف العقار بنجاح")),
-              );
+            onPressed: () async {
+              try {
+                await _adminService.resolveReport(id, delete: true);
+                if (!context.mounted) return;
+                Navigator.pop(context); // إغلاق نافذة التأكيد
+                Navigator.pop(context); // إغلاق شاشة التفاصيل
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("تم حذف العقار بنجاح")),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                Navigator.pop(context); // إغلاق نافذة التأكيد فقط
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("تعذر حذف العقار: $e")),
+                );
+              }
             },
             child: const Text("حذف نهائي"),
           ),

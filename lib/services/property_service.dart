@@ -8,15 +8,15 @@ class PropertyService {
 
   /// جلب كل العقارات النشطة وغير المنتهية الصلاحية
   Stream<List<PropertyModel>> getActiveProperties() {
-    final nowIso = DateTime.now().toIso8601String();
     return _supabase.from('properties').stream(primaryKey: ['id']).map((rows) {
-      // فلترة العقارات التي لم تنتهي صلاحيتها وتثبيت الترتيب محلياً للـ Stream
+      // مقارنة التواريخ كـ DateTime لتجنب أخطاء مقارنة النصوص واختلاف المناطق الزمنية.
+      final now = DateTime.now().toUtc();
       final activeRows = rows.where((row) {
-        // القوائم العامة تعرض الإعلانات الموثقة فقط
         if (row['status'] != 'verified') return false;
-        final expiresAt = row['expires_at']?.toString();
-        if (expiresAt == null) return true;
-        return expiresAt.compareTo(nowIso) > 0;
+        final rawExpiry = row['expires_at']?.toString();
+        if (rawExpiry == null || rawExpiry.isEmpty) return true;
+        final expiry = DateTime.tryParse(rawExpiry)?.toUtc();
+        return expiry != null && expiry.isAfter(now);
       }).toList();
 
       // الترتيب: حسب تاريخ الإنشاء من الأحدث
@@ -37,15 +37,20 @@ class PropertyService {
 
   /// جلب عقارات مميزة (Featured Properties)
   Stream<List<PropertyModel>> getFeaturedProperties() {
-    final nowIso = DateTime.now().toIso8601String();
     return _supabase.from('properties').stream(primaryKey: ['id']).map((rows) {
+      final now = DateTime.now().toUtc();
       final featuredRows = rows.where((row) {
-        // القوائم العامة تعرض الإعلانات الموثقة فقط
         if (row['status'] != 'verified') return false;
+        final rawExpiry = row['expires_at']?.toString();
+        if (rawExpiry != null && rawExpiry.isNotEmpty) {
+          final expiry = DateTime.tryParse(rawExpiry)?.toUtc();
+          if (expiry == null || !expiry.isAfter(now)) return false;
+        }
         final isFeatured = row['is_featured'] == true;
-        final featuredUntil = row['featured_until']?.toString();
-        if (!isFeatured || featuredUntil == null) return false;
-        return featuredUntil.compareTo(nowIso) > 0;
+        final rawFeaturedUntil = row['featured_until']?.toString();
+        if (!isFeatured || rawFeaturedUntil == null) return false;
+        final featuredUntil = DateTime.tryParse(rawFeaturedUntil)?.toUtc();
+        return featuredUntil != null && featuredUntil.isAfter(now);
       }).toList();
 
       return featuredRows
@@ -65,7 +70,11 @@ class PropertyService {
   }) async {
     try {
       // البحث العام يعرض الإعلانات الموثقة فقط
-      dynamic query = _supabase.from('properties').select().eq('status', 'verified');
+      dynamic query = _supabase
+          .from('properties')
+          .select()
+          .eq('status', 'verified')
+          .or('expires_at.is.null,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}');
 
       // تم التعديل من 'governorate' إلى 'gov' ليتطابق مع قاعدة البيانات واسم الحقل في الموديل
       if (governorate != null && governorate.isNotEmpty) {
@@ -119,42 +128,66 @@ class PropertyService {
   /// إضافة عقار جديد مع رفع الصور للسيرفر تلقائياً وتخزين روابطها
   Future<bool> addProperty(
       PropertyModel property, List<String> imagePaths) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      debugPrint('يجب تسجيل الدخول لإضافة العقار.');
+      return false;
+    }
+
+    final List<String> uploadedImageUrls = [];
+    final List<String> uploadedStoragePaths = [];
+
     try {
-      List<String> uploadedImageUrls = [];
-
-      // 1. رفع الصور إلى Supabase Storage باستخدام الـ bucket الموجود فعلياً
-      for (String path in imagePaths) {
-        // إذا كانت الصورة مسار محلي وليست رابطاً ويب بالفعل
-        if (!path.startsWith('http')) {
-          final file = File(path);
-          final fileName =
-              '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
-          final storagePath = 'properties/$fileName';
-
-          await _supabase.storage
-              .from('property_images')
-              .upload(storagePath, file);
-
-          final String publicUrl = _supabase.storage
-              .from('property_images')
-              .getPublicUrl(storagePath);
-          uploadedImageUrls.add(publicUrl);
-        } else {
+      // ارفع الملفات أولاً، مع الاحتفاظ بمساراتها لتنظيفها إذا فشل إدخال العقار.
+      for (final path in imagePaths) {
+        if (path.startsWith('http://') || path.startsWith('https://')) {
           uploadedImageUrls.add(path);
+          continue;
         }
+
+        final file = File(path);
+        final fileName =
+            '${DateTime.now().microsecondsSinceEpoch}_${file.path.split('/').last}';
+        final storagePath = 'properties/$fileName';
+
+        await _supabase.storage
+            .from('property_images')
+            .upload(storagePath, file);
+        uploadedStoragePaths.add(storagePath);
+
+        uploadedImageUrls.add(
+          _supabase.storage.from('property_images').getPublicUrl(storagePath),
+        );
       }
 
-      // 2. تحديث قائمة الصور في بيانات العقار لتصبح روابط سحابية
-      final Map<String, dynamic> dataToInsert = property.toMap();
-      if (uploadedImageUrls.isNotEmpty) {
-        dataToInsert['images'] = uploadedImageUrls;
-      }
+      final dataToInsert = property.toMap();
+      dataToInsert['images'] = uploadedImageUrls;
+      // لا نثق في حالة الإعلان أو المالك أو حقول التمييز القادمة من كائن العميل.
+      dataToInsert['owner_id'] = userId;
+      dataToInsert['status'] = 'pending';
+      dataToInsert['is_featured'] = false;
+      dataToInsert['is_reported'] = false;
+      dataToInsert['report_count'] = 0;
+      dataToInsert.remove('expires_at');
+      dataToInsert.remove('featured_until');
+      dataToInsert.remove('last_refreshed');
+      dataToInsert.remove('created_at');
 
-      // 3. إدخال البيانات في جدول properties
-      await _supabase.from('properties').insert(dataToInsert);
+      await _supabase.from('properties').insert(dataToInsert).select('id').single();
       return true;
     } catch (e) {
       debugPrint("خطأ أثناء إضافة العقار: $e");
+
+      // لا تترك الصور التي رفعها هذا الطلب إذا فشل إدخال العقار.
+      if (uploadedStoragePaths.isNotEmpty) {
+        try {
+          await _supabase.storage
+              .from('property_images')
+              .remove(uploadedStoragePaths);
+        } catch (cleanupError) {
+          debugPrint("تعذر تنظيف الصور المرفوعة بعد فشل الإضافة: $cleanupError");
+        }
+      }
       return false;
     }
   }
@@ -163,24 +196,63 @@ class PropertyService {
   Future<void> updateProperty(
       String propertyId, Map<String, dynamic> updatedData) async {
     try {
-      await _supabase
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('يجب تسجيل الدخول لتعديل الإعلان.');
+      }
+
+      // Allowlist: لا تسمح لهذه الخدمة بتغيير المالك أو حالة المراجعة
+      // أو التمييز أو البلاغات أو تواريخ الصلاحية.
+      const allowedFields = {'title', 'price', 'finishing', 'metadata'};
+      final safeData = <String, dynamic>{
+        for (final entry in updatedData.entries)
+          if (allowedFields.contains(entry.key)) entry.key: entry.value,
+      };
+      if (safeData.isEmpty) {
+        throw Exception('لا توجد حقول مسموح بتحديثها.');
+      }
+
+      final updatedRow = await _supabase
           .from('properties')
-          .update(updatedData)
-          .eq('id', propertyId);
+          .update(safeData)
+          .eq('id', propertyId)
+          .eq('owner_id', userId)
+          .select('id')
+          .maybeSingle();
+
+      if (updatedRow == null) {
+        throw Exception('لم يتم تعديل الإعلان. قد لا يكون تابعاً لحسابك أو لا توجد صلاحية.');
+      }
     } catch (e) {
       debugPrint("خطأ أثناء تحديث العقار: $e");
       rethrow;
     }
   }
 
-  /// حذف إعلان بواسطة الـ ID مع تنظيف السجلات المرتبطة في المفضلة تلقائياً
+  /// حذف إعلان بواسطة الـ ID بعد التأكد من أن المستخدم الحالي هو المالك.
+  /// يجب أيضاً فرض شرط owner_id وسياسة الحذف في Supabase RLS.
   Future<void> deleteProperty(String propertyId) async {
     try {
-      // 1. حذف المستندات المرتبطة في المفضلة (favorites) أولاً
-      await _supabase.from('favorites').delete().eq('property_id', propertyId);
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('يجب تسجيل الدخول لحذف الإعلان.');
+      }
 
-      // 2. حذف العقار الأساسي من جدول properties
-      await _supabase.from('properties').delete().eq('id', propertyId);
+      // لا نحذف مفضلات أي مستخدم قبل التأكد من ملكية الإعلان وحذف سجله.
+      final deletedProperty = await _supabase
+          .from('properties')
+          .delete()
+          .eq('id', propertyId)
+          .eq('owner_id', userId)
+          .select('id')
+          .maybeSingle();
+
+      if (deletedProperty == null) {
+        throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
+      }
+
+      // تنظيف المفضلات يجب أن يتم عبر FK ON DELETE CASCADE في قاعدة البيانات.
+      // لا نحذف مفضلات المستخدمين الآخرين من عميل المالك؛ ذلك يتطلب صلاحية إدارية/عملية ذرية.
     } catch (e) {
       debugPrint("خطأ أثناء حذف العقار: $e");
       rethrow;

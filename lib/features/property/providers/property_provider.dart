@@ -59,6 +59,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           .select()
           // القوائم العامة تعرض الإعلانات الموثقة فقط
           .eq('status', 'verified')
+          .or('expires_at.is.null,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}')
           .order('created_at', ascending: false)
           .range(from, to);
 
@@ -88,6 +89,9 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
 
   Future<bool> addProperty(
       PropertyModel property, List<String> imagePaths) async {
+    final List<String> uploadedImagePaths = [];
+    String? uploadedVideoPath;
+    bool propertyInserted = false;
     try {
       final supabase = Supabase.instance.client;
       final authUser = supabase.auth.currentUser;
@@ -115,6 +119,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           await supabase.storage.from('property_images').upload(fileName, file);
         }
 
+        uploadedImagePaths.add(fileName);
         final String downloadUrl =
             supabase.storage.from('property_images').getPublicUrl(fileName);
         uploadedImageUrls.add(downloadUrl);
@@ -132,6 +137,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           await supabase.storage
               .from('property_Videos')
               .uploadBinary(videoName, bytes);
+          uploadedVideoPath = videoName;
           uploadedVideoUrl =
               supabase.storage.from('property_Videos').getPublicUrl(videoName);
         } else {
@@ -162,6 +168,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           await supabase.storage
               .from('property_Videos')
               .upload(videoName, fileToUpload);
+          uploadedVideoPath = videoName;
 
           uploadedVideoUrl =
               supabase.storage.from('property_Videos').getPublicUrl(videoName);
@@ -176,6 +183,16 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
 
       // 3. تجهيز البيانات النهائية للرفع وضبط الـ owner_id
       propertyMap['owner_id'] = authUser.id;
+      // لا يحدد العميل حالة اعتماد الإعلان أو يمنحه التمييز عند الإنشاء.
+      propertyMap['status'] = 'pending';
+      propertyMap['is_featured'] = false;
+      propertyMap['is_reported'] = false;
+      propertyMap['report_count'] = 0;
+      // لا نسمح بتمرير تواريخ صلاحية أو تحديث أو تمييز من كائن العميل.
+      // يبدأ الإعلان الجديد بمدة الصلاحية التي تحددها الإدارة بعد المراجعة.
+      propertyMap.remove('expires_at');
+      propertyMap.remove('featured_until');
+      propertyMap.remove('last_refreshed');
       propertyMap['images'] = uploadedImageUrls;
       propertyMap['video'] = uploadedVideoUrl;
       propertyMap['created_at'] = DateTime.now().toIso8601String();
@@ -187,6 +204,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           .insert(propertyMap)
           .select()
           .single();
+      propertyInserted = true;
 
       PropertyModel createdProperty = PropertyModel.fromMap(
         insertedData,
@@ -203,6 +221,21 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
 
       return true;
     } catch (e, stackTrace) {
+      // إذا فشل إنشاء سجل العقار، ننظف الوسائط التي رفعناها في هذه المحاولة.
+      // لا نحذفها إذا كان السجل قد أُنشئ بالفعل.
+      if (!propertyInserted) {
+        try {
+          final storage = Supabase.instance.client.storage;
+          if (uploadedImagePaths.isNotEmpty) {
+            await storage.from('property_images').remove(uploadedImagePaths);
+          }
+          if (uploadedVideoPath != null) {
+            await storage.from('property_Videos').remove([uploadedVideoPath]);
+          }
+        } catch (cleanupError) {
+          debugPrint("تعذر تنظيف بعض الملفات المرفوعة: $cleanupError");
+        }
+      }
       debugPrint("========== خطأ في إضافة ونشر العقار ==========");
       debugPrint(e.toString());
       debugPrint("Stack trace: $stackTrace");
