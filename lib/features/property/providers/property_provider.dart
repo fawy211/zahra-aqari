@@ -13,12 +13,14 @@ class PropertyState {
   final bool isLoading;
   final int page;
   final bool hasMore;
+  final String? errorMessage;
 
   PropertyState({
     required this.properties,
     required this.isLoading,
     this.page = 0,
     this.hasMore = true,
+    this.errorMessage,
   });
 
   PropertyState copyWith({
@@ -26,12 +28,15 @@ class PropertyState {
     bool? isLoading,
     int? page,
     bool? hasMore,
+    String? errorMessage,
+    bool clearError = false,
   }) {
     return PropertyState(
       properties: properties ?? this.properties,
       isLoading: isLoading ?? this.isLoading,
       page: page ?? this.page,
       hasMore: hasMore ?? this.hasMore,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
 }
@@ -47,7 +52,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
   Future<void> fetchMore() async {
     if (state.isLoading || !state.hasMore) return;
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       final supabase = Supabase.instance.client;
@@ -82,7 +87,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
       );
     } catch (e) {
       debugPrint("خطأ في جلب تفاصيل العقارات: $e");
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
