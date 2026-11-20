@@ -12,17 +12,6 @@ class InfoPagesView extends StatefulWidget {
     required this.docId,
   });
 
-  Future<Map<String, dynamic>?> _fetchPageContent() async {
-    final supabase = Supabase.instance.client;
-
-    // افتراض أن اسم الجدول هو 'pages' وأن الحقل المعرف الأساسي هو 'id' أو 'slug'
-    // يمكنك تعديل 'id' حسب اسم العمود الأساسي في جدول Supabase لديك (مثلاً 'id' أو 'slug')
-    final response =
-        await supabase.from('pages').select().eq('id', docId).maybeSingle();
-
-    return response;
-  }
-
   @override
   State<InfoPagesView> createState() => _InfoPagesViewState();
 }
