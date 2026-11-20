@@ -77,12 +77,15 @@ class AdminService {
 
   /// إضافة عقار جديد مع تواريخ دقيقة
   Future<void> addProperty(PropertyModel property) async {
+    if (!await isAdmin()) {
+      throw Exception('غير مصرح لك بإضافة عقار من لوحة الإدارة.');
+    }
     Map<String, dynamic> data = property.toMap();
 
-    // تعيين تواريخ التوافق مع Supabase (ISO8601 Strings)
-    data['created_at'] = DateTime.now().toIso8601String();
+    // تعيين التواريخ بصيغة UTC موحدة.
+    data['created_at'] = DateTime.now().toUtc().toIso8601String();
     data['expires_at'] =
-        DateTime.now().add(const Duration(days: 90)).toIso8601String();
+        DateTime.now().toUtc().add(const Duration(days: 90)).toIso8601String();
 
     // إزالة المعرف المؤقت إن وجد ليتولى Supabase إنشاؤه تلقائياً
     data.remove('id');
