@@ -101,9 +101,141 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
                       const BorderSide(color: Color(0xFF003366), width: 1.5),
                 ),
               ),
-              validator: (v) => v == null || !v.contains('@')
-                  ? "يرجى إدخال بريد إلكتروني صحيح"
-                  : null,
+              validator: (v) {
+                final email = v?.trim() ?? '';
+                final valid = RegExp(
+                  r'^[A-Za-z0-9.!#\$%&\'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "صلاحيات المندوب",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF003366),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // كارت صلاحية إضافة العقارات
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: SwitchListTile(
+                title: const Text("إضافة عقارات",
+                    style: TextStyle(fontWeight: FontWeight.w500)),
+                subtitle: const Text(
+                    "السماح للمندوب بإضافة عقارات جديدة باسم الشركة",
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                secondary: const Icon(Icons.home_work_outlined,
+                    color: Color(0xFF003366)),
+                activeColor: const Color(0xFF003366),
+                value: canAddProperties,
+                onChanged: (val) => setState(() => canAddProperties = val),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // كارت صلاحية الرد على الرسائل
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: SwitchListTile(
+                title: const Text("الرد على الرسائل",
+                    style: TextStyle(fontWeight: FontWeight.w500)),
+                subtitle: const Text(
+                    "السماح للمندوب بالتواصل والرد على استفسارات العملاء",
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                secondary: const Icon(Icons.chat_bubble_outline,
+                    color: Color(0xFF003366)),
+                activeColor: const Color(0xFF003366),
+                value: canReplyToMessages,
+                onChanged: (val) => setState(() => canReplyToMessages = val),
+              ),
+            ),
+            const SizedBox(height: 32),
+            // زر الحفظ بتصميم احترافي
+            SizedBox(
+              height: 52,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF003366),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                onPressed: _isLoading ? null : () => _saveDelegate(context),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Text(
+                        "حفظ المندوب وصلاحياته",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveDelegate(BuildContext context) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // إدراج البيانات في جدول company_delegates في Supabase
+      await _supabase.from('company_delegates').insert({
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim().toLowerCase(),
+        'company_id': widget.companyId,
+        'can_add_properties': canAddProperties,
+        'can_reply_to_messages': canReplyToMessages,
+        // عمود created_at سيتم تعيينه تلقائياً في قاعدة البيانات إذا تم ضبط القيمة الافتراضية لـ now()
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("تم إضافة المندوب وصلاحياته بنجاح"),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء حفظ المندوب: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("حدث خطأ أثناء الحفظ: $e"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+}
+,
+                ).hasMatch(email);
+                return valid ? null : "يرجى إدخال بريد إلكتروني صحيح";
+              },
             ),
             const SizedBox(height: 24),
             const Text(
