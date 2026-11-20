@@ -59,6 +59,7 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
           .select()
           // القوائم العامة تعرض الإعلانات الموثقة فقط
           .eq('status', 'verified')
+          .or('expires_at.is.null,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}')
           .order('created_at', ascending: false)
           .range(from, to);
 
@@ -182,6 +183,12 @@ class PropertyNotifier extends StateNotifier<PropertyState> {
 
       // 3. تجهيز البيانات النهائية للرفع وضبط الـ owner_id
       propertyMap['owner_id'] = authUser.id;
+      // لا يحدد العميل حالة اعتماد الإعلان أو يمنحه التمييز عند الإنشاء.
+      propertyMap['status'] = 'pending';
+      propertyMap['is_featured'] = false;
+      propertyMap['is_reported'] = false;
+      propertyMap['report_count'] = 0;
+      propertyMap.remove('featured_until');
       propertyMap['images'] = uploadedImageUrls;
       propertyMap['video'] = uploadedVideoUrl;
       propertyMap['created_at'] = DateTime.now().toIso8601String();
