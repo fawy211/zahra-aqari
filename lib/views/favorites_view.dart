@@ -97,7 +97,7 @@ class FavoritesView extends StatelessWidget {
             itemBuilder: (context, index) {
               final favData = favDocs[index];
               final String propertyId =
-                  favData['propertyId'] ?? favData['property_id'];
+                  (favData['property_id'] ?? favData['propertyId'] ?? '').toString();
 
               return FutureBuilder<Map<String, dynamic>?>(
                 future: Supabase.instance.client
@@ -142,7 +142,8 @@ class FavoritesView extends StatelessWidget {
                   final property = PropertyModel.fromMap(mergedData);
                   final String imageUrl = (propData['imageUrl'] ??
                       propData['image'] ??
-                      '') as String;
+                      '')
+                  .toString();
 
                   return Dismissible(
                     key: Key(propertyId),
@@ -267,8 +268,20 @@ class FavoritesView extends StatelessWidget {
                                     Icons.favorite_rounded,
                                     color: Colors.redAccent,
                                   ),
-                                  onPressed: () =>
-                                      _service.toggleFavorite(propertyId),
+                                  onPressed: () async {
+                                    try {
+                                      await _service.toggleFavorite(propertyId);
+                                    } catch (error) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'تعذر تحديث المفضلة: $error',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                               ],
                             ),
