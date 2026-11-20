@@ -57,7 +57,8 @@ class _LoginScreenState extends State<LoginScreen> {
           },
         );
 
-        // حفظ بيانات المستخدم الإضافية في جدول profiles متوافقة تماماً مع الـ UserModel
+        // حفظ بيانات المستخدم الإضافية في جدول profiles.
+        String? profileSaveError;
         if (response.user != null) {
           try {
             await supabase.from('profiles').upsert({
@@ -72,13 +73,23 @@ class _LoginScreenState extends State<LoginScreen> {
               'is_verified_office': false, // ليس مكتب موثق افتراضياً
               'created_at': DateTime.now().toIso8601String(),
             });
-          } catch (profileError) {
-            debugPrint("ملاحظة بخصوص جدول profiles: $profileError");
+          } catch (error) {
+            profileSaveError = error.toString();
+            debugPrint("تعذر حفظ بيانات الملف الشخصي: $profileSaveError");
           }
+        } else {
+          profileSaveError = 'Supabase Auth returned no user after sign up.';
         }
 
         if (!mounted) return;
-        _showSnackBar("تم إنشاء الحساب بنجاح", Colors.green);
+        if (profileSaveError == null) {
+          _showSnackBar("تم إنشاء الحساب بنجاح", Colors.green);
+        } else {
+          _showSnackBar(
+            "تم إنشاء حساب الدخول، لكن تعذر حفظ بيانات الملف الشخصي. يرجى التواصل مع الدعم قبل استخدام الحساب.",
+            Colors.orange.shade800,
+          );
+        }
       }
 
       // إعطاء فرصة قصيرة جداً لظهور الـ SnackBar بسلاسة قبل غلق الشاشة
