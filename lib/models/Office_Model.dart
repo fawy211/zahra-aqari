@@ -48,8 +48,8 @@ class OfficeModel {
       'email': email,
       'logo': logo,
       'address': address,
-      'propertiesCount': propertiesCount,
-      'isVerified': isVerified,
+      'properties_count': propertiesCount,
+      'is_verified': isVerified,
     };
 
     if (createdAt != null) {
