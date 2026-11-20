@@ -285,15 +285,31 @@ class ReportsReviewScreen extends StatelessWidget {
                         label: const Text("اعتماد الإعلان",
                             style: TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          _adminService.resolveReport(property.id!,
-                              delete: false);
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          try {
+                            await _adminService.resolveReport(
+                              property.id!,
+                              delete: false,
+                            );
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+                            messenger.showSnackBar(
+                              const SnackBar(
                                 content: Text(
-                                    "تم اعتماد الإعلان وإزالة البلاغات بنجاح")),
-                          );
+                                  "تم اعتماد الإعلان وإزالة البلاغات بنجاح",
+                                ),
+                              ),
+                            );
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text("تعذر اعتماد الإعلان: $error"),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),
