@@ -57,25 +57,21 @@ class _CompanyRegistrationScreenState extends State<CompanyRegistrationScreen> {
       final user = supabase.auth.currentUser;
       if (user == null) throw Exception("المستخدم غير مسجل الدخول");
 
-      // حفظ طلب التوثيق في جدول companies في Supabase
+      // حفظ طلب التوثيق في جدول companies بالأعمدة الموجودة فعلاً في المخطط:
+      // owner_id و name و commercial_register و created_at فقط.
       await supabase.from('companies').insert({
-        'ownerId': user.id,
-        'companyName': _nameController.text.trim(),
-        'crNumber': _crController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
-        'field': _selectedField,
-        'status': 'pending',
-        'createdAt': DateTime.now().toIso8601String(),
+        'owner_id': user.id,
+        'name': _nameController.text.trim(),
+        'commercial_register': _crController.text.trim(),
+        'created_at': DateTime.now().toIso8601String(),
       });
 
-      // تحديث بيانات المستخدم الأساسية في جدول users لربطها بالاسم والدور مبدئياً
-      await supabase.from('users').upsert({
-        'id': user.id,
-        'companyName': _nameController.text.trim(),
+      // حفظ اسم الشركة والهاتف في جدول profiles، وهو جدول المستخدمين الموحد.
+      // جدول users غير موجود في هذا المشروع.
+      await supabase.from('profiles').update({
+        'company_name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'role': 'company', // تعيين الدور كشركة قيد المراجعة
-      });
+      }).eq('id', user.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
