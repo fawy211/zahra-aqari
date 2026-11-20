@@ -219,10 +219,24 @@ class AdminVerificationScreen extends StatelessWidget {
       try {
         final SupabaseClient supabase = Supabase.instance.client;
 
-        // تنفيذ التحديث باستخدام جدول Supabase
-        await supabase
+        if (id.trim().isEmpty) {
+          throw Exception('معرّف العقار غير صالح.');
+        }
+
+        // لا نعتمد القرار إلا إذا كان العقار ما زال معلقاً وتم تحديث سجله فعلياً.
+        final updatedProperty = await supabase
             .from('properties')
-            .update({'status': status}).eq('id', id);
+            .update({'status': status})
+            .eq('id', id)
+            .eq('status', 'pending')
+            .select('id')
+            .maybeSingle();
+
+        if (updatedProperty == null) {
+          throw Exception(
+            'لم يتم تحديث العقار. ربما تمت مراجعته بالفعل أو لا تملك صلاحية تنفيذ الإجراء.',
+          );
+        }
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
