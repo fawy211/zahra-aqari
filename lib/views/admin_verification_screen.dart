@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/admin_service.dart';
 
 class AdminVerificationScreen extends StatelessWidget {
   const AdminVerificationScreen({super.key});
@@ -173,6 +174,18 @@ class AdminVerificationScreen extends StatelessWidget {
   // مربع حوار تأكيد الإجراء بشكل احترافي
   Future<void> _confirmAction(BuildContext context, String id, String status,
       String statusLabel) async {
+    final bool isAdmin = await AdminService().isAdmin();
+    if (!isAdmin) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('غير مصرح لك بمراجعة الإعلانات.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
     final bool isVerified = status == 'verified';
 
     final confirmed = await showDialog<bool>(
@@ -233,6 +246,7 @@ class AdminVerificationScreen extends StatelessWidget {
             .from('properties')
             .update(updateData)
             .eq('id', id)
+            .eq('status', 'pending')
             .select('id')
             .maybeSingle();
 
