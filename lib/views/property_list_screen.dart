@@ -57,43 +57,77 @@ class _PropertyListScreenState extends ConsumerState<PropertyListScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF003366)),
             )
-          : propertyState.properties.isEmpty
+          : propertyState.properties.isEmpty && propertyState.errorMessage != null
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.home_outlined,
-                          size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
-                      Text(
-                        "لا توجد عقارات مضافة حالياً",
-                        style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 16),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi_off, size: 48, color: Colors.redAccent),
+                        const SizedBox(height: 12),
+                        Text(propertyState.errorMessage!, textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () => ref.read(propertyProvider.notifier).retryFetch(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
                   ),
                 )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  itemCount: propertyState.properties.length +
-                      (propertyState.hasMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index < propertyState.properties.length) {
-                      return _PropertyCard(
-                          property: propertyState.properties[index]);
-                    } else {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                              color: Color(0xFF003366)),
-                        ),
-                      );
-                    }
-                  },
-                ),
+              : propertyState.properties.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.home_outlined,
+                              size: 64, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                            "لا توجد عقارات مضافة حالياً",
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      itemCount: propertyState.properties.length +
+                          ((propertyState.hasMore || propertyState.errorMessage != null) ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index < propertyState.properties.length) {
+                          return _PropertyCard(
+                              property: propertyState.properties[index]);
+                        }
+                        if (propertyState.errorMessage != null) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Text(propertyState.errorMessage!, textAlign: TextAlign.center),
+                                  TextButton.icon(
+                                    onPressed: () => ref.read(propertyProvider.notifier).retryFetch(),
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('إعادة محاولة تحميل المزيد'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(color: Color(0xFF003366)),
+                          ),
+                        );
+                      },
+                    ),
     );
   }
 }
