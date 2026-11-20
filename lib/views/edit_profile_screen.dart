@@ -75,6 +75,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (user != null) {
       setState(() => _isLoading = true);
+      String? uploadedAvatarPath;
       try {
         String? uploadedAvatarUrl = _currentAvatarUrl;
 
@@ -83,6 +84,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final fileName =
               'avatar_${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
           final storagePath = 'avatars/$fileName';
+          uploadedAvatarPath = storagePath;
 
           // رفع الملف إلى Bucket مخصص ولنفترض اسمه 'profiles_bucket' (يمكنك تغييره حسب اسم البكت لديك)
           await supabase.storage
@@ -105,7 +107,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           updateData['company_name'] = _companyNameController.text.trim();
         }
 
-        await supabase.from('profiles').update(updateData).eq('id', user.id);
+        final updatedProfile = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', user.id)
+            .select('id')
+            .maybeSingle();
+
+        if (updatedProfile == null) {
+          throw Exception('لم يتم العثور على ملف المستخدم لتحديثه.');
+        }
 
         if (!mounted) return;
 
@@ -119,6 +130,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         Navigator.pop(context, true); // إرجاع true لتحديث الشاشة السابقة
       } catch (e) {
+        // حذف الصورة الجديدة فقط إذا فشل تحديث ملف المستخدم.
+        if (uploadedAvatarPath != null) {
+          try {
+            await supabase.storage
+                .from('profiles_bucket')
+                .remove([uploadedAvatarPath]);
+          } catch (cleanupError) {
+            debugPrint('تعذر تنظيف صورة الملف الشخصي: $cleanupError');
+          }
+        }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
