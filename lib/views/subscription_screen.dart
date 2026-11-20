@@ -45,6 +45,19 @@ class SubscriptionScreen extends StatelessWidget {
   }
 
   Future<void> _handleSubscription(BuildContext context, dynamic plan) async {
+    // لا نفعّل باقة مدفوعة من العميل قبل ربط بوابة دفع والتحقق server-side.
+    if ((plan.price as num) > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              "تفعيل الباقات المدفوعة غير متاح حالياً حتى اكتمال ربط الدفع الآمن."),
+          backgroundColor: Colors.orange.shade800,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final user = _supabase.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
