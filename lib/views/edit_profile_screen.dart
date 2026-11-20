@@ -73,8 +73,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final SupabaseClient supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
 
-    if (user != null) {
-      setState(() => _isLoading = true);
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يجب تسجيل الدخول قبل تعديل الملف الشخصي.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
       String? uploadedAvatarPath;
       try {
         String? uploadedAvatarUrl = _currentAvatarUrl;
@@ -103,7 +109,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (uploadedAvatarUrl != null) 'avatar_url': uploadedAvatarUrl,
         };
 
-        if (_companyNameController.text.trim().isNotEmpty) {
+        final userType =
+            (widget.userData['user_type'] ?? widget.userData['account_type'] ?? '')
+                .toString()
+                .toLowerCase();
+        final existingCompanyName =
+            (widget.userData['company_name'] ?? widget.userData['companyName'] ?? '')
+                .toString()
+                .trim();
+        final isCompanyProfile = userType == 'company' ||
+            userType == 'office' ||
+            existingCompanyName.isNotEmpty;
+
+        // إرسال القيمة حتى لو كانت فارغة يسمح بمسح اسم الشركة القديم.
+        if (isCompanyProfile) {
           updateData['company_name'] = _companyNameController.text.trim();
         }
 
@@ -153,7 +172,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           setState(() => _isLoading = false);
         }
       }
-    }
   }
 
   @override
