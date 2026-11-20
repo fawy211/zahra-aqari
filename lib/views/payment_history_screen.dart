@@ -25,9 +25,13 @@ class PaymentHistoryScreen extends StatelessWidget {
       ),
       // استخدام StreamBuilder للاستماع الفوري للبيانات من جدول payments في Supabase وترتيبها تنازلياً حسب التاريخ
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: Supabase.instance.client
-            .from('payments')
-            .stream(primaryKey: ['id']).order('created_at', ascending: false),
+        stream: Supabase.instance.client.auth.currentUser == null
+            ? Stream<List<Map<String, dynamic>>>.empty()
+            : Supabase.instance.client
+                .from('payments')
+                .stream(primaryKey: ['id'])
+                .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
+                .order('created_at', ascending: false),
         builder: (context, snapshot) {
           // 1. حالة التحميل
           if (snapshot.connectionState == ConnectionState.waiting) {
