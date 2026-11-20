@@ -117,8 +117,10 @@ class AdminService {
     if (days <= 0 || days > 365) {
       throw ArgumentError('مدة التمييز يجب أن تكون بين يوم و365 يوماً.');
     }
+    final now = DateTime.now().toUtc();
     final expiryDate =
-        DateTime.now().toUtc().add(Duration(days: days)).toIso8601String();
+        now.add(Duration(days: days)).toIso8601String();
+    // لا نميز إعلاناً قيد المراجعة أو مرفوضاً أو انتهت صلاحيته.
     final updated = await _supabase
         .from('properties')
         .update({
@@ -126,10 +128,14 @@ class AdminService {
           'featured_until': expiryDate,
         })
         .eq('id', propertyId)
+        .eq('status', 'verified')
+        .or('expires_at.is.null,expires_at.gt.${now.toIso8601String()}')
         .select('id')
         .maybeSingle();
     if (updated == null) {
-      throw Exception('لم يتم العثور على الإعلان لتمييزه.');
+      throw Exception(
+        'لم يتم تمييز الإعلان. تأكد أنه معتمد وما زال سارياً.',
+      );
     }
   }
 
