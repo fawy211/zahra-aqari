@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'home_screen.dart';
@@ -18,6 +20,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoading = true;
   bool _isAdmin = false;
   bool _isAuthenticated = false;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
@@ -25,11 +28,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _checkAuthAndRole();
 
     // الاستماع لتغيرات حالة المصادقة في Supabase (تسجيل دخول / خروج)
-    _supabase.auth.onAuthStateChange.listen((data) {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
       if (mounted) {
         _checkAuthAndRole();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkAuthAndRole() async {
