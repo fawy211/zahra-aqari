@@ -105,7 +105,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           updateData['company_name'] = _companyNameController.text.trim();
         }
 
-        await supabase.from('profiles').update(updateData).eq('id', user.id);
+        final updatedProfile = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', user.id)
+            .select('id')
+            .maybeSingle();
+
+        if (updatedProfile == null) {
+          throw Exception(
+            'لم يتم تحديث أي سجل في الملف الشخصي. تحقق من وجود الملف وصلاحيات التحديث.',
+          );
+        }
 
         if (!mounted) return;
 
