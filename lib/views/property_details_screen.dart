@@ -128,6 +128,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
       ),
     );
 
+    if (!mounted) return;
+
     if (updatedProperty is PropertyModel) {
       setState(() {
         _currentProperty = updatedProperty;
