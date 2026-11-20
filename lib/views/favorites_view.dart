@@ -36,6 +36,19 @@ class FavoritesView extends StatelessWidget {
             );
           }
 
+          if (snapshot.hasError) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  "تعذر تحميل المفضلة. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            );
+          }
+
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Padding(
