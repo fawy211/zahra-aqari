@@ -36,6 +36,26 @@ class FavoritesView extends StatelessWidget {
             );
           }
 
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 42),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'تعذر تحميل المفضلة. تحقق من اتصالك وحاول مرة أخرى.',
+                      textAlign: TextAlign.center,
+                    ),
+
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Padding(
@@ -141,8 +161,19 @@ class FavoritesView extends StatelessWidget {
                         size: 28,
                       ),
                     ),
-                    onDismissed: (direction) {
-                      _service.toggleFavorite(propertyId);
+                    onDismissed: (direction) async {
+                      try {
+                        await _service.toggleFavorite(propertyId);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'تعذر إزالة العقار من المفضلة: $error',
+                            ),
+                          ),
+                        );
+                      }
                     },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
