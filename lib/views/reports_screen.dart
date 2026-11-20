@@ -136,8 +136,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 else
                   ...docs.map((item) {
                     final title = item['title'] ?? 'عملية تمييز إعلان / باقة';
-                    final amount = (item['amount'] ?? 0).toDouble();
-                    final String? createdAt = item['created_at'];
+                    final amount =
+                        num.tryParse(item['amount']?.toString() ?? '') ?? 0;
+                    final String? createdAt = item['created_at']?.toString();
 
                     String dateStr = "حديثاً";
                     if (createdAt != null) {
