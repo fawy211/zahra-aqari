@@ -247,31 +247,54 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_controller.text.trim().isEmpty) return;
-    String text = _controller.text.trim();
-    _controller.clear();
+    final sender = currentUser;
+    if (sender == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("يجب تسجيل الدخول لإرسال الرسائل"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
 
     try {
       final currentTime = DateTime.now().toIso8601String();
 
-      // 1. إضافة الرسالة إلى جدول messages (تأكد من وجود عمود chat_id يربطها بالمحادثة)
+      // لا نمسح النص قبل نجاح إدراج الرسالة حتى لا يفقد المستخدم مسودته عند الفشل.
       await _supabase.from('messages').insert({
         'chat_id': widget.chatId,
         'text': text,
-        'senderId': currentUser?.id,
+        'senderId': sender.id,
         'timestamp': currentTime,
       });
 
-      // 2. تحديث جدول المحادثات الرئيسي (chats) لتحديث آخر رسالة ووقت التحديث
-      await _supabase.from('chats').update({
-        'lastMessage': text,
-        'updatedAt': currentTime,
-      }).eq('id', widget.chatId);
+      // الرسالة حُفظت بالفعل؛ امسح المسودة المرسلة فقط.
+      // إذا كتب المستخدم رسالة أخرى أثناء الإرسال، لا نمسح النص الجديد.
+      if (mounted && _controller.text.trim() == text) {
+        _controller.clear();
+      }
+
+      // تحديث بيانات آخر رسالة تحسين إضافي؛ فشله لا يعني أن الرسالة نفسها فشلت.
+      try {
+        await _supabase.from('chats').update({
+          'lastMessage': text,
+          'updatedAt': currentTime,
+        }).eq('id', widget.chatId);
+      } catch (e) {
+        debugPrint("تعذر تحديث ملخص المحادثة بعد حفظ الرسالة: $e");
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("فشل إرسال الرسالة: $e"),
+            content: Text("فشل إرسال الرسالة، واحتفظنا بالنص ليمكنك المحاولة مجدداً: $e"),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
