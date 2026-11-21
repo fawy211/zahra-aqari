@@ -63,20 +63,33 @@ class _LoginScreenState extends State<LoginScreen> {
           throw Exception('لم يتم إنشاء حساب. حاول مرة أخرى.');
         }
 
-        await supabase.from('profiles').upsert({
-          'id': createdUser.id,
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'user_type': 'individual',
-          'account_type': 'individual',
-          'created_at': DateTime.now().toIso8601String(),
-        });
+        String? profileSaveError;
+        try {
+          await supabase.from('profiles').upsert({
+            'id': createdUser.id,
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'user_type': 'individual',
+            'account_type': 'individual',
+            'created_at': DateTime.now().toIso8601String(),
+          });
+        } catch (error) {
+          profileSaveError = error.toString();
+          debugPrint('تعذر حفظ بيانات الملف الشخصي بعد إنشاء الحساب: $error');
+        }
 
         if (!mounted) return;
-        final message = response.session == null
-            ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني لإكمال تسجيل الدخول.'
-            : 'تم إنشاء الحساب بنجاح';
-        _showSnackBar(message, Colors.green);
+        if (profileSaveError != null) {
+          _showSnackBar(
+            'تم إنشاء حساب الدخول، لكن تعذر حفظ بيانات الملف الشخصي. لا تكمل استخدام الحساب قبل مراجعة الدعم.',
+            Colors.orange.shade800,
+          );
+        } else {
+          final message = response.session == null
+              ? 'تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني لإكمال تسجيل الدخول.'
+              : 'تم إنشاء الحساب بنجاح';
+          _showSnackBar(message, Colors.green);
+        }
       }
 
       // إعطاء فرصة قصيرة جداً لظهور الـ SnackBar بسلاسة قبل غلق الشاشة
