@@ -27,7 +27,7 @@ class AuthService {
       // لا نكتب في users أو wallets قبل اعتماد مخططهما وسياسات RLS الخاصة بهما.
       // نوع الحساب والصلاحيات الحساسة تُحددها قاعدة البيانات، وليس بيانات العميل.
 
-      await _supabase.from('profiles').upsert({
+      await _supabase.from('profiles').insert({
         'id': uid,
         'email': email,
         'name': userMap['name'] ?? userMap['full_name'] ?? '',
