@@ -59,18 +59,44 @@ class _PropertyListScreenState extends ConsumerState<PropertyListScreen> {
             )
           : propertyState.properties.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.home_outlined,
-                          size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
-                      Text(
-                        "لا توجد عقارات مضافة حالياً",
-                        style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 16),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          propertyState.errorMessage == null
+                              ? Icons.home_outlined
+                              : Icons.error_outline,
+                          size: 64,
+                          color: propertyState.errorMessage == null
+                              ? Colors.grey.shade400
+                              : Colors.redAccent,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          propertyState.errorMessage ??
+                              "لا توجد عقارات مضافة حالياً",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: propertyState.errorMessage == null
+                                ? Colors.grey.shade600
+                                : Colors.redAccent,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (propertyState.errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: propertyState.isLoading
+                                ? null
+                                : () => ref.read(propertyProvider.notifier).retryFetch(),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text("إعادة المحاولة"),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -78,11 +104,32 @@ class _PropertyListScreenState extends ConsumerState<PropertyListScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   itemCount: propertyState.properties.length +
-                      (propertyState.hasMore ? 1 : 0),
+                      ((propertyState.hasMore || propertyState.errorMessage != null) ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index < propertyState.properties.length) {
                       return _PropertyCard(
                           property: propertyState.properties[index]);
+                    } else if (propertyState.errorMessage != null) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                propertyState.errorMessage!,
+                                textAlign: TextAlign.center,
+                              ),
+                              TextButton.icon(
+                                onPressed: propertyState.isLoading
+                                    ? null
+                                    : () => ref.read(propertyProvider.notifier).retryFetch(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text("إعادة محاولة تحميل المزيد"),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     } else {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 16.0),
