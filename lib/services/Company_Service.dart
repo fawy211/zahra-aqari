@@ -11,13 +11,8 @@ class CompanyService {
         .from('companies')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
-        .map((rows) {
-          return rows.map((row) => CompanyModel.fromMap(row)).toList();
-        })
-        .handleError((error) {
-          debugPrint("خطأ في جلب الشركات العقارية: $error");
-          return <CompanyModel>[];
-        });
+        .map((rows) =>
+            rows.map((row) => CompanyModel.fromMap(row)).toList());
   }
 
   /// جلب تفاصيل شركة معينة بالـ ID
