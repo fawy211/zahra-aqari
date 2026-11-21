@@ -182,7 +182,14 @@ class AddPropertyNotifier extends Notifier<PropertyFormState> {
         propertyData.remove('featured_until');
         // نفس قائمة الحقول المسموح بها في PropertyService؛ لا نرسل
         // حقولاً غير قابلة للتحرير من هذا المسار البديل.
-        const editableFields = {'title', 'price', 'finishing', 'metadata'};
+        const editableFields = {
+          'title',
+          'price',
+          'finishing',
+          'metadata',
+          'floor',
+          'rooms',
+        };
         final safeUpdate = <String, dynamic>{
           for (final entry in propertyData.entries)
             if (editableFields.contains(entry.key)) entry.key: entry.value,
