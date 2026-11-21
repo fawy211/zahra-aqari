@@ -18,6 +18,7 @@ class _MyPropertiesViewState extends State<MyPropertiesView> {
   final SupabaseClient _supabase = Supabase.instance.client;
   late String currentUserId;
   late final StreamSubscription<AuthState> _authSubscription;
+  final Set<String> _deletingPropertyIds = <String>{};
 
   @override
   void initState() {
@@ -149,69 +150,93 @@ class _MyPropertiesViewState extends State<MyPropertiesView> {
                       ),
                       // زر الحذف
                       IconButton(
-                        icon:
-                            const Icon(Icons.delete_rounded, color: Colors.red),
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              title: const Text("حذف الإعلان"),
-                              content: const Text(
-                                  "هل أنت متأكد من رغبتك في حذف هذا الإعلان؟"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                  child: const Text("إلغاء",
-                                      style: TextStyle(color: Colors.grey)),
+                        icon: _deletingPropertyIds.contains(property.id)
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.red,
                                 ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text(
-                                    "حذف",
-                                    style: TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
+                              )
+                            : const Icon(Icons.delete_rounded, color: Colors.red),
+                        onPressed: _deletingPropertyIds.contains(property.id)
+                            ? null
+                            : () async {
+                                final propertyId = property.id;
+                                if (propertyId == null ||
+                                    _deletingPropertyIds.contains(propertyId)) {
+                                  return;
+                                }
 
-                          if (confirm == true) {
-                            try {
-                              await _propertyService
-                                  .deleteProperty(property.id!);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text("تم حذف الإعلان بنجاح"),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
                                     shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
+                                        borderRadius: BorderRadius.circular(16)),
+                                    title: const Text("حذف الإعلان"),
+                                    content: const Text(
+                                        "هل أنت متأكد من رغبتك في حذف هذا الإعلان؟"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text("إلغاء",
+                                            style: TextStyle(color: Colors.grey)),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text(
+                                          "حذف",
+                                          style: TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("فشل الحذف: $e"),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        },
+
+                                if (confirm != true || !mounted) return;
+
+                                setState(() =>
+                                    _deletingPropertyIds.add(propertyId));
+                                try {
+                                  await _propertyService.deleteProperty(propertyId);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            const Text("تم حذف الإعلان بنجاح"),
+                                        backgroundColor: Colors.green,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text("فشل الحذف: $e"),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setState(() =>
+                                        _deletingPropertyIds.remove(propertyId));
+                                  }
+                                }
+                              },
                       ),
                     ],
                   ),
