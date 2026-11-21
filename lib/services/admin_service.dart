@@ -58,6 +58,17 @@ class AdminService {
     }
   }
 
+  /// جلب دور المستخدم الإداري من جدول admins
+  Future<String?> getAdminRole() async {
+    final permissions = await getAdminPermissions();
+    return permissions?['role']?.toString();
+  }
+
+  /// المدير العام فقط يملك صلاحيات التعديل المباشر الحالية
+  Future<bool> isSuperAdmin() async {
+    return await getAdminRole() == 'super_admin';
+  }
+
   /// جلب صلاحيات المشرف مع الاستفادة من الكاش
   Future<Map<String, dynamic>?> getAdminPermissions() async {
     final currentUser = _supabase.auth.currentUser;
@@ -96,7 +107,7 @@ class AdminService {
 
   /// إضافة عقار جديد مع تواريخ دقيقة
   Future<void> addProperty(PropertyModel property) async {
-    if (!await isAdmin()) {
+    if (!await isSuperAdmin()) {
       throw Exception('غير مصرح لك بإضافة عقار من لوحة الإدارة.');
     }
     Map<String, dynamic> data = property.toMap();
@@ -114,7 +125,7 @@ class AdminService {
 
   /// تنشيط الإعلان ورفعه لأعلى القائمة (Refresh)
   Future<void> refreshProperty(String propertyId) async {
-    if (!await isAdmin()) {
+    if (!await isSuperAdmin()) {
       throw Exception('غير مصرح لك بتنشيط الإعلانات.');
     }
     final updated = await _supabase
@@ -130,7 +141,7 @@ class AdminService {
 
   /// تمييز الإعلان لفترة محددة بالأيام
   Future<void> featureProperty(String propertyId, int days) async {
-    if (!await isAdmin()) {
+    if (!await isSuperAdmin()) {
       throw Exception('غير مصرح لك بتمييز الإعلانات.');
     }
     if (days <= 0 || days > 365) {
@@ -178,19 +189,13 @@ class AdminService {
   /// معالجة البلاغ (إما الحذف النهائي أو إعادة تعيين حالة البلاغ)
   Future<void> resolveReport(String propertyId, {bool delete = false}) async {
     try {
-      if (!await isAdmin()) {
+      if (!await isSuperAdmin()) {
         throw Exception('غير مصرح لك بمعالجة البلاغات.');
       }
       if (delete) {
-        final deleted = await _supabase
-            .from('properties')
-            .delete()
-            .eq('id', propertyId)
-            .select('id')
-            .maybeSingle();
-        if (deleted == null) {
-          throw Exception('لم يتم العثور على الإعلان لحذفه.');
-        }
+        throw Exception(
+          'حذف العقارات من لوحة الإدارة غير مفعّل حاليًا؛ لا توجد سياسة حذف إدارية آمنة.',
+        );
       } else {
         final updated = await _supabase
             .from('properties')
