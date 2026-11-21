@@ -135,14 +135,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   )
                 else
                   ...docs.map((item) {
-                    final title = item['title'] ?? 'عملية تمييز إعلان / باقة';
-                    final amount = (item['amount'] ?? 0).toDouble();
-                    final String? createdAt = item['created_at'];
+                    final title =
+                        item['title']?.toString() ?? 'عملية تمييز إعلان / باقة';
+                    final parsedAmount =
+                        num.tryParse(item['amount']?.toString() ?? '') ?? 0;
+                    final amount =
+                        parsedAmount.isFinite ? parsedAmount : 0.0;
+                    final createdAt = item['created_at']?.toString();
 
                     String dateStr = "حديثاً";
-                    if (createdAt != null) {
-                      final DateTime date = DateTime.parse(createdAt).toLocal();
-                      dateStr = DateFormat('yyyy/MM/dd - hh:mm a').format(date);
+                    if (createdAt != null && createdAt.isNotEmpty) {
+                      final parsedDate = DateTime.tryParse(createdAt);
+                      if (parsedDate != null) {
+                        dateStr = DateFormat('yyyy/MM/dd - hh:mm a')
+                            .format(parsedDate.toLocal());
+                      }
                     }
 
                     return _buildTransactionItem(
