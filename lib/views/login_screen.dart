@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         String? profileSaveError;
         try {
-          await supabase.from('profiles').upsert({
+          await supabase.from('profiles').insert({
             'id': createdUser.id,
             'name': _nameController.text.trim(),
             'email': _emailController.text.trim(),
