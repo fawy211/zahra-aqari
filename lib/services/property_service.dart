@@ -229,16 +229,80 @@ class PropertyService {
     }
   }
 
-  /// حذف إعلان بواسطة الـ ID بعد التأكد من أن المستخدم الحالي هو المالك.
-  /// يجب أيضاً فرض شرط owner_id وسياسة الحذف في Supabase RLS.
+  /// يستخرج مسارات الملفات التابعة للمستخدم فقط من روابط Supabase Public Storage.
+  /// يتجاهل الروابط الخارجية والمسارات القديمة التي لا تبدأ بمعرّف المالك.
+  List<String> _ownedPropertyMediaPaths(
+    dynamic rawUrls, {
+    required String bucketId,
+    required String ownerId,
+    required String mediaFolder,
+  }) {
+    final values = rawUrls is List
+        ? rawUrls
+        : (rawUrls is String && rawUrls.isNotEmpty ? [rawUrls] : const []);
+    final paths = <String>{};
+
+    for (final value in values) {
+      if (value is! String || value.isEmpty) continue;
+      final uri = Uri.tryParse(value);
+      if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+        continue;
+      }
+
+      final segments = uri.pathSegments;
+      final publicIndex = segments.indexOf('public');
+      if (publicIndex < 0 ||
+          publicIndex + 2 >= segments.length ||
+          segments[publicIndex + 1] != bucketId) {
+        continue;
+      }
+
+      final objectSegments = segments.skip(publicIndex + 2).toList();
+      if (objectSegments.length < 3 ||
+          objectSegments[0] != ownerId ||
+          objectSegments[1] != mediaFolder) {
+        continue;
+      }
+
+      paths.add(objectSegments.join('/'));
+    }
+
+    return paths.toList();
+  }
+
+  /// يحذف سجل الإعلان أولاً بعد التحقق من ملكيته، ثم ينظف ملفاته المملوكة فقط.
+  /// فشل تنظيف Storage لا يعيد الإعلان المحذوف ولا يحوّل العملية إلى فشل مضلل.
   Future<void> deleteProperty(String propertyId) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) {
+      if (userId == null || userId.isEmpty) {
         throw Exception('يجب تسجيل الدخول لحذف الإعلان.');
       }
 
-      // لا نحذف مفضلات أي مستخدم قبل التأكد من ملكية الإعلان وحذف سجله.
+      final property = await _supabase
+          .from('properties')
+          .select('owner_id, images, video')
+          .eq('id', propertyId)
+          .eq('owner_id', userId)
+          .maybeSingle();
+
+      if (property == null) {
+        throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
+      }
+
+      final imagePaths = _ownedPropertyMediaPaths(
+        property['images'],
+        bucketId: 'property_images',
+        ownerId: userId,
+        mediaFolder: 'images',
+      );
+      final videoPaths = _ownedPropertyMediaPaths(
+        property['video'],
+        bucketId: 'property_Videos',
+        ownerId: userId,
+        mediaFolder: 'videos',
+      );
+
       final deletedProperty = await _supabase
           .from('properties')
           .delete()
@@ -248,11 +312,27 @@ class PropertyService {
           .maybeSingle();
 
       if (deletedProperty == null) {
-        throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
+        throw Exception('لم يتم حذف الإعلان. ربما تغيرت ملكيته أو لم يعد موجوداً.');
       }
 
-      // تنظيف المفضلات يجب أن يتم عبر FK ON DELETE CASCADE في قاعدة البيانات.
-      // لا نحذف مفضلات المستخدمين الآخرين من عميل المالك؛ ذلك يتطلب صلاحية إدارية/عملية ذرية.
+      // تنظيف كل Bucket بصورة مستقلة حتى لا يمنع فشل أحدهما محاولة تنظيف الآخر.
+      if (imagePaths.isNotEmpty) {
+        try {
+          await _supabase.storage.from('property_images').remove(imagePaths);
+        } catch (cleanupError) {
+          debugPrint('تم حذف الإعلان لكن تعذر تنظيف بعض صوره: $cleanupError');
+        }
+      }
+
+      if (videoPaths.isNotEmpty) {
+        try {
+          await _supabase.storage.from('property_Videos').remove(videoPaths);
+        } catch (cleanupError) {
+          debugPrint('تم حذف الإعلان لكن تعذر تنظيف الفيديو: $cleanupError');
+        }
+      }
+
+      // المفضلات تعتمد على FK ON DELETE CASCADE؛ لا نحذف بيانات مستخدمين آخرين من العميل.
     } catch (e) {
       debugPrint("خطأ أثناء حذف العقار: $e");
       rethrow;
