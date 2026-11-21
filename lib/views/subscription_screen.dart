@@ -97,46 +97,21 @@ class SubscriptionScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(dialogContext);
 
-              try {
-                // 1. تسجيل عملية الدفع في جدول payments
-                await _supabase.from('payments').insert({
-                  'userId': user.id,
-                  'title': 'اشتراك باقة: ${plan.name}',
-                  'amount': plan.price,
-                  'timestamp': DateTime.now().toIso8601String(),
-                });
-
-                // 2. تحديث بيانات المستخدم في جدول users
-                await _supabase.from('users').update({
-                  'subscriptionPlan': plan.name,
-                  'subscriptionDate': DateTime.now().toIso8601String(),
-                }).eq('id', user.id);
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("تم الاشتراك في ${plan.name} بنجاح!"),
-                      backgroundColor: Colors.green.shade700,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+              // الخطة المجانية لا تُعد عملية دفع ولا تحتاج إلى سجل payments.
+              // لا نغيّر اشتراك الحساب من العميل؛ الخطة الافتراضية المجانية متاحة تلقائياً.
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      "الخطة المجانية متاحة تلقائياً ولا تحتاج إلى دفع. لم يتم إنشاء عملية مالية أو تغيير بيانات الاشتراك.",
                     ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text("حدث خطأ أثناء عملية الاشتراك: ${e.toString()}"),
-                      backgroundColor: Colors.red.shade700,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
+                    backgroundColor: Color(0xFF003366),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             child: const Text("تأكيد"),
