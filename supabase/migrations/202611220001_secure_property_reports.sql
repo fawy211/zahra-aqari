@@ -3,7 +3,7 @@
 
 begin;
 
--- The reports table is currently empty, so these constraints can be added safely.
+-- The reports table was verified empty before preparing this migration.
 alter table public.reports
   alter column status set default 'pending',
   alter column status set not null;
@@ -19,10 +19,11 @@ alter table public.reports
 create unique index if not exists reports_one_per_user_target_uidx
   on public.reports (user_id, target_type, target_id);
 
--- Do not let anonymous clients or ordinary users mutate report ownership,
--- target, reason, or delete report records.
-revoke all privileges on table public.reports from anon, authenticated;
-grant select, insert on table public.reports to authenticated;
+-- Least-privilege grants: clients may submit only the four intended fields.
+revoke all privileges on table public.reports from public, anon, authenticated;
+grant select on table public.reports to authenticated;
+grant insert (user_id, target_type, target_id, reason)
+  on table public.reports to authenticated;
 grant update (status) on table public.reports to authenticated;
 
 drop policy if exists "Reports are manageable by owner" on public.reports;
@@ -83,7 +84,7 @@ with check (
   and status in ('resolved', 'dismissed')
 );
 
--- Keep the legacy property summary fields in sync with report records.
+-- Maintain the existing properties summary fields from the report records.
 create or replace function public.sync_property_report_state()
 returns trigger
 language plpgsql
@@ -120,6 +121,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function public.sync_property_report_state() from public, anon, authenticated;
 
 drop trigger if exists reports_sync_property_state on public.reports;
 create trigger reports_sync_property_state
