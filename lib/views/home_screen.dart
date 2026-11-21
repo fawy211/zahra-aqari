@@ -377,11 +377,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             error: (err, stack) => Center(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'حدث خطأ في تحميل البيانات: $err',
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.wifi_off_rounded,
+                      color: Colors.redAccent,
+                      size: 42,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'تعذر تحميل العقارات. تحقق من اتصالك وحاول مرة أخرى.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        ref.invalidate(
+                          filteredPropertiesProvider(filterParams),
+                        );
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ],
                 ),
               ),
             ),
