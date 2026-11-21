@@ -69,8 +69,6 @@ class _LoginScreenState extends State<LoginScreen> {
             'id': createdUser.id,
             'name': _nameController.text.trim(),
             'email': _emailController.text.trim(),
-            'user_type': 'individual',
-            'account_type': 'individual',
             'created_at': DateTime.now().toIso8601String(),
           });
         } catch (error) {
