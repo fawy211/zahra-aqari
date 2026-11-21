@@ -7,16 +7,37 @@ class AdminService {
   // تخزين مؤقت سريع لتجنب استعلامات Supabase المتكررة لنفس الجلسة
   Map<String, dynamic>? _cachedAdminData;
   String? _cachedUserId;
+  DateTime? _adminCacheExpiresAt;
+
+  static const Duration _adminCacheTtl = Duration(minutes: 2);
+
+  bool get _hasValidAdminCache =>
+      _cachedAdminData != null &&
+      _cachedUserId == _supabase.auth.currentUser?.id &&
+      _adminCacheExpiresAt != null &&
+      DateTime.now().isBefore(_adminCacheExpiresAt!);
+
+  void _clearAdminCache() {
+    _cachedAdminData = null;
+    _cachedUserId = null;
+    _adminCacheExpiresAt = null;
+  }
+
+  void _storeAdminCache(String userId, Map<String, dynamic> data) {
+    _cachedUserId = userId;
+    _cachedAdminData = data;
+    _adminCacheExpiresAt = DateTime.now().add(_adminCacheTtl);
+  }
 
   /// التحقق مما إذا كان المستخدم الحالي مشرفاً
   Future<bool> isAdmin() async {
     final currentUser = _supabase.auth.currentUser;
-    if (currentUser == null) return false;
-
-    // استخدام الكاش إذا كان نفس المستخدم
-    if (_cachedUserId == currentUser.id && _cachedAdminData != null) {
-      return true;
+    if (currentUser == null) {
+      _clearAdminCache();
+      return false;
     }
+
+    if (_hasValidAdminCache) return true;
 
     try {
       final response = await _supabase
@@ -26,12 +47,13 @@ class AdminService {
           .maybeSingle();
 
       if (response != null) {
-        _cachedUserId = currentUser.id;
-        _cachedAdminData = response;
+        _storeAdminCache(currentUser.id, response);
         return true;
       }
+      _clearAdminCache();
       return false;
     } catch (e) {
+      _clearAdminCache();
       return false;
     }
   }
@@ -39,11 +61,12 @@ class AdminService {
   /// جلب صلاحيات المشرف مع الاستفادة من الكاش
   Future<Map<String, dynamic>?> getAdminPermissions() async {
     final currentUser = _supabase.auth.currentUser;
-    if (currentUser == null) return null;
-
-    if (_cachedUserId == currentUser.id && _cachedAdminData != null) {
-      return _cachedAdminData;
+    if (currentUser == null) {
+      _clearAdminCache();
+      return null;
     }
+
+    if (_hasValidAdminCache) return _cachedAdminData;
 
     try {
       final response = await _supabase
@@ -53,11 +76,12 @@ class AdminService {
           .maybeSingle();
 
       if (response != null) {
-        _cachedUserId = currentUser.id;
-        _cachedAdminData = response;
+        _storeAdminCache(currentUser.id, response);
         return _cachedAdminData;
       }
+      _clearAdminCache();
     } catch (e) {
+      _clearAdminCache();
       return null;
     }
     return null;
@@ -193,7 +217,6 @@ class AdminService {
 
   /// مسح الكاش عند تسجيل الخروج
   void clearCache() {
-    _cachedAdminData = null;
-    _cachedUserId = null;
+    _clearAdminCache();
   }
 }
