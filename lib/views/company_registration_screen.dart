@@ -230,15 +230,17 @@ class _CompanyRegistrationScreenState extends State<CompanyRegistrationScreen> {
         validator: (v) {
           final value = v?.trim() ?? '';
           if (value.isEmpty) return 'هذا الحقل مطلوب';
-          if (type == TextInputType.emailAddress &&
-              !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+
-      ),
-    );
-  }
-}
-).hasMatch(value)) {
-            return 'يرجى إدخال بريد إلكتروني صحيح';
+
+          if (type == TextInputType.emailAddress) {
+            final atIndex = value.indexOf('@');
+            final dotIndex = value.lastIndexOf('.');
+            final invalidEmail = atIndex <= 0 ||
+                atIndex != value.lastIndexOf('@') ||
+                dotIndex < atIndex + 2 ||
+                dotIndex >= value.length - 1;
+            if (invalidEmail) return 'يرجى إدخال بريد إلكتروني صحيح';
           }
+
           return null;
         },
       ),
