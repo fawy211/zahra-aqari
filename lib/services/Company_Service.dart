@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/models/Company_Model.dart'; // تأكد من مسار المودل
 
@@ -13,10 +12,6 @@ class CompanyService {
         .order('created_at', ascending: false)
         .map((rows) {
           return rows.map((row) => CompanyModel.fromMap(row)).toList();
-        })
-        .handleError((error) {
-          debugPrint("خطأ في جلب الشركات العقارية: $error");
-          return <CompanyModel>[];
         });
   }
 
