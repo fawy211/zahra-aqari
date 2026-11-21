@@ -186,33 +186,15 @@ class AdminService {
         });
   }
 
-  /// معالجة البلاغ (إما الحذف النهائي أو إعادة تعيين حالة البلاغ)
+  /// التوافق المؤقت مع أي استدعاءات قديمة.
+  /// لا يجوز تعديل ملخص البلاغات في properties مباشرة؛ المصدر المعتمد هو reports.
+  /// يجب استخدام شاشة مراجعة البلاغات لتحديث سجل محدد بواسطة report ID.
+  @Deprecated('Use the individual report review workflow instead.')
   Future<void> resolveReport(String propertyId, {bool delete = false}) async {
-    try {
-      if (!await isSuperAdmin()) {
-        throw Exception('غير مصرح لك بمعالجة البلاغات.');
-      }
-      if (delete) {
-        throw Exception(
-          'حذف العقارات من لوحة الإدارة غير مفعّل حاليًا؛ لا توجد سياسة حذف إدارية آمنة.',
-        );
-      } else {
-        final updated = await _supabase
-            .from('properties')
-            .update({
-              'is_reported': false,
-              'report_count': 0,
-            })
-            .eq('id', propertyId)
-            .select('id')
-            .maybeSingle();
-        if (updated == null) {
-          throw Exception('لم يتم العثور على الإعلان لتحديث البلاغ.');
-        }
-      }
-    } catch (e) {
-      rethrow;
-    }
+    throw UnsupportedError(
+      'لم تعد معالجة البلاغات تتم باستخدام معرف العقار. '
+      'استخدم شاشة مراجعة البلاغات لمعالجة سجل البلاغ نفسه.',
+    );
   }
 
   /// مسح الكاش عند تسجيل الخروج
