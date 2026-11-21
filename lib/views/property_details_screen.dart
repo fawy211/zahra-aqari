@@ -783,9 +783,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 Navigator.pop(context);
                 if (phone.isNotEmpty) {
                   // تنظيف رقم الهاتف وإزالة المسافات
-                  String formattedPhone = phone.replaceAll(RegExp(r'\s+'), '');
+                  String formattedPhone =
+                      phone.replaceAll(RegExp(r'[^0-9+]'), '');
                   if (formattedPhone.startsWith('01')) {
-                    formattedPhone = '+20$formattedPhone';
+                    // Convert local Egyptian mobile numbers to international digits.
+                    formattedPhone = '20' + formattedPhone.substring(1);
+                  } else if (formattedPhone.startsWith('+')) {
+                    formattedPhone = formattedPhone.substring(1);
                   }
                   final whatsappUrl = Uri.parse(
                       "https://wa.me/$formattedPhone?text=${Uri.encodeComponent('مرحباً، أنا مهتم بالعقار "${_currentProperty.title}" المعروض على تطبيق زهرة العقاري.')}");
