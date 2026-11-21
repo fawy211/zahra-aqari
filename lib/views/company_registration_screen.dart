@@ -57,16 +57,19 @@ class _CompanyRegistrationScreenState extends State<CompanyRegistrationScreen> {
       final user = supabase.auth.currentUser;
       if (user == null) throw Exception("المستخدم غير مسجل الدخول");
 
-      // حفظ طلب التوثيق في جدول companies في Supabase
+      // companies schema: owner_id, name, commercial_register, metadata, created_at.
+      // Contact and activity details are stored in metadata because they are not
+      // standalone columns in the current database schema.
       await supabase.from('companies').insert({
-        'ownerId': user.id,
-        'companyName': _nameController.text.trim(),
-        'crNumber': _crController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
-        'field': _selectedField,
-        'status': 'pending',
-        'createdAt': DateTime.now().toIso8601String(),
+        'owner_id': user.id,
+        'name': _nameController.text.trim(),
+        'commercial_register': _crController.text.trim(),
+        'metadata': {
+          'contact_phone': _phoneController.text.trim(),
+          'contact_email': _emailController.text.trim(),
+          'business_field': _selectedField,
+          'submitted_at': DateTime.now().toUtc().toIso8601String(),
+        },
       });
 
       // لا نمنح الحساب دور شركة قبل مراجعة واعتماد طلب التوثيق.
