@@ -11,13 +11,8 @@ class OfficeService {
         .from('offices')
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
-        .map((rows) {
-          return rows.map((row) => OfficeModel.fromMap(row)).toList();
-        })
-        .handleError((error) {
-          debugPrint("خطأ في جلب المكاتب العقارية: $error");
-          return <OfficeModel>[];
-        });
+        .map((rows) =>
+            rows.map((row) => OfficeModel.fromMap(row)).toList());
   }
 
   /// جلب تفاصيل مكتب معين بالـ ID
