@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/widgets/custom_header.dart';
+import 'package:aqari_app/views/company_profile_view.dart';
 
 class CompaniesView extends StatefulWidget {
   const CompaniesView({super.key});
@@ -154,6 +155,24 @@ class _CompaniesViewState extends State<CompaniesView> {
       shadowColor: Colors.black12,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        onTap: () {
+          final ownerId = data['owner_id']?.toString() ?? '';
+          if (ownerId.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('بيانات الشركة غير مكتملة')),
+            );
+            return;
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CompanyProfileView(
+                ownerId: ownerId,
+                companyName: displayName,
+              ),
+            ),
+          );
+        },
         leading: CircleAvatar(
           backgroundColor: const Color(0xFF003366).withOpacity(0.1),
           child: Text(
