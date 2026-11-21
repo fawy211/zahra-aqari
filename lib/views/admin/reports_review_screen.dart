@@ -268,63 +268,45 @@ class ReportsReviewScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // أزرار اتخاذ القرار (اعتماد / حذف)
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        icon: const Icon(Icons.check_circle_outline),
-                        label: const Text("إغلاق البلاغ",
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.bold)),
-                        onPressed: () async {
-                          try {
-                            await _adminService.resolveReport(property.id!,
-                                delete: false);
-                            if (!context.mounted) return;
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      "تم إغلاق البلاغ وإزالة علامته بنجاح")),
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("تعذرت معالجة البلاغ: $e")),
-                            );
-                          }
-                        },
+                // إغلاق البلاغ متاح حاليًا للمدير العام فقط.
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      elevation: 0,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade700,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text("حذف العقار",
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.bold)),
-                        onPressed: () =>
-                            _showDeleteConfirm(context, property.id!),
-                      ),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text(
+                      "إغلاق البلاغ",
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
-                  ],
+                    onPressed: () async {
+                      try {
+                        if (!await _adminService.isSuperAdmin()) {
+                          throw Exception('إغلاق البلاغات متاح للمدير العام فقط حاليًا.');
+                        }
+                        await _adminService.resolveReport(property.id!, delete: false);
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("تم إغلاق البلاغ وإزالة علامته بنجاح"),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("تعذرت معالجة البلاغ: $e")),
+                        );
+                      }
+                    },
+                  ),
                 ),
                 const SizedBox(height: 10),
               ],
@@ -335,56 +317,4 @@ class ReportsReviewScreen extends StatelessWidget {
     );
   }
 
-  // نافذة تأكيد الحذف بتصميم تحذيري أنيق
-  void _showDeleteConfirm(BuildContext context, String id) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text("تأكيد الحذف النهائي"),
-          ],
-        ),
-        content: const Text(
-          "هل أنت متأكد أنك تريد حذف هذا العقار نهائياً من المنصة؟ لا يمكن التراجع عن هذا الإجراء.",
-          style: TextStyle(height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              try {
-                await _adminService.resolveReport(id, delete: true);
-                if (!context.mounted) return;
-                Navigator.pop(context); // إغلاق نافذة التأكيد
-                Navigator.pop(context); // إغلاق شاشة التفاصيل
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("تم حذف العقار بنجاح")),
-                );
-              } catch (e) {
-                if (!context.mounted) return;
-                Navigator.pop(context); // إغلاق نافذة التأكيد فقط
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("تعذر حذف العقار: $e")),
-                );
-              }
-            },
-            child: const Text("حذف نهائي"),
-          ),
-        ],
-      ),
-    );
-  }
 }
