@@ -100,7 +100,7 @@ class CompanyAdminDashboard extends StatelessWidget {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase
           .from('properties')
-          .stream(primaryKey: ['id']).eq('ownerId', companyId),
+          .stream(primaryKey: ['id']).eq('owner_id', companyId),
       builder: (context, propertySnapshot) {
         final propertiesCount =
             propertySnapshot.hasData ? propertySnapshot.data!.length : 0;
