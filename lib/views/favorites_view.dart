@@ -49,7 +49,12 @@ class FavoritesView extends StatelessWidget {
                       'تعذر تحميل المفضلة. تحقق من اتصالك وحاول مرة أخرى.',
                       textAlign: TextAlign.center,
                     ),
-
+                    const SizedBox(height: 8),
+                    Text(
+                      snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
@@ -96,8 +101,13 @@ class FavoritesView extends StatelessWidget {
             itemCount: favDocs.length,
             itemBuilder: (context, index) {
               final favData = favDocs[index];
-              final String propertyId =
-                  (favData['property_id'] ?? favData['propertyId'] ?? '').toString();
+              final propertyId =
+                  (favData['property_id'] ?? favData['propertyId'])?.toString();
+
+              // تجاهل سجلات المفضلة غير المكتملة قبل إنشاء الاستعلام أو المفتاح.
+              if (propertyId == null || propertyId.trim().isEmpty) {
+                return const SizedBox.shrink();
+              }
 
               return FutureBuilder<Map<String, dynamic>?>(
                 future: Supabase.instance.client
@@ -125,6 +135,22 @@ class FavoritesView extends StatelessWidget {
                             color: Color(0xFF003366),
                           ),
                         ),
+                      ),
+                    );
+                  }
+
+                  if (propertySnapshot.hasError) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: const Text(
+                        "تعذر تحميل بيانات أحد العقارات المحفوظة",
+                        style: TextStyle(color: Colors.grey),
                       ),
                     );
                   }

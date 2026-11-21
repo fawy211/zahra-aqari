@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -44,42 +45,71 @@ class FavoriteService {
     }
   }
 
-  /// التحقق هل العقار مفضل (Stream لتحديث الأيقونة لحظياً في الـ UI)
-  Stream<bool> isFavorite(String propertyId) {
-    final userId = _currentUserId;
-    if (userId.isEmpty) {
-      return Stream.value(false); // إذا لم يوجد مستخدم، فالعقار ليس مفضلاً
-    }
+  /// يبني تدفقاً يتبع المستخدم الحالي، مع إرسال الحالة الحالية فور الاشتراك
+  /// ثم إعادة ربط مصدر البيانات عند تغير الحساب أو تسجيل الخروج.
+  Stream<T> _streamForCurrentUser<T>(
+    Stream<T> Function(String userId) sourceForUser,
+    T signedOutValue,
+  ) {
+    return Stream<T>.multi((controller) {
+      String activeUserId = _currentUserId;
+      StreamSubscription<T>? dataSubscription;
 
-    return _supabase
-        .from('favorites')
-        .stream(primaryKey: [
-          'id'
-        ]) // تأكد من أن جدول favorites يحتوي على عمود id كـ Primary Key
-        .eq('user_id', userId)
-        .map((rows) {
-          return rows.any((row) => row['property_id'] == propertyId);
-        })
-        .handleError((error) {
-          debugPrint("خطأ في تدفق المفضلة (isFavorite): $error");
-          return false;
-        });
+      void bindUser(String userId) {
+        dataSubscription?.cancel();
+        if (userId.isEmpty) {
+          controller.add(signedOutValue);
+          return;
+        }
+
+        dataSubscription = sourceForUser(userId).listen(
+          controller.add,
+          onError: controller.addError,
+        );
+      }
+
+      // لا نعتمد على حدث Auth أولي قد يكون صدر قبل إنشاء StreamBuilder.
+      bindUser(activeUserId);
+
+      final authSubscription = _supabase.auth.onAuthStateChange.listen((event) {
+        final nextUserId = event.session?.user.id ?? _currentUserId;
+        if (nextUserId == activeUserId) return;
+        activeUserId = nextUserId;
+        bindUser(activeUserId);
+      });
+
+      controller.onCancel = () {
+        dataSubscription?.cancel();
+        authSubscription.cancel();
+      };
+    });
   }
 
-  /// جلب كل مفضلات المستخدم (تُرجع قائمة بالبيانات كـ Stream)
-  Stream<List<Map<String, dynamic>>> getFavorites() {
-    final userId = _currentUserId;
-    if (userId.isEmpty) return Stream.value([]);
+  /// يتبع تدفق حالة المفضلة جلسة المستخدم الحالية.
+  Stream<bool> isFavorite(String propertyId) {
+    return _streamForCurrentUser<bool>(
+      (userId) => _supabase
+          .from('favorites')
+          .stream(primaryKey: ['id'])
+          .eq('user_id', userId)
+          .map((rows) => rows.any(
+                (row) => row['property_id']?.toString() == propertyId,
+              )),
+      false,
+    );
+  }
 
-    return _supabase
-        .from('favorites')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
-        .order('created_at', ascending: false) // ترتيب المفضلات من الأحدث
-        .map((rows) => rows.cast<Map<String, dynamic>>())
-        .handleError((error) {
-          debugPrint("خطأ في جلب المفضلات (getFavorites): $error");
-          return <Map<String, dynamic>>[];
-        });
+  /// جلب مفضلات المستخدم الحالي وإعادة ربط التدفق عند تغير جلسة الدخول.
+  /// نترك أخطاء المصدر تصل إلى StreamBuilder حتى لا تظهر كقائمة فارغة.
+  Stream<List<Map<String, dynamic>>> getFavorites() {
+    return _streamForCurrentUser<List<Map<String, dynamic>>>(
+      (userId) => _supabase
+          .from('favorites')
+          .stream(primaryKey: ['id'])
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .map((rows) => rows.cast<Map<String, dynamic>>()),
+      <Map<String, dynamic>>[],
+    );
   }
 }
