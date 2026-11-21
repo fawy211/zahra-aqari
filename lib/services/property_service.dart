@@ -229,6 +229,25 @@ class PropertyService {
     }
   }
 
+  /// Extract a Storage object path only from a URL belonging to the expected bucket.
+  String? _storagePathFromPublicUrl(String? rawUrl, String bucket) {
+    if (rawUrl == null || rawUrl.trim().isEmpty) return null;
+    try {
+      final uri = Uri.parse(rawUrl);
+      final segments = uri.pathSegments;
+      final markerIndex = segments.indexOf('public');
+      if (markerIndex < 0 ||
+          markerIndex + 1 >= segments.length ||
+          segments[markerIndex + 1] != bucket ||
+          markerIndex + 2 >= segments.length) {
+        return null;
+      }
+      return segments.skip(markerIndex + 2).join('/');
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// حذف إعلان بواسطة الـ ID بعد التأكد من أن المستخدم الحالي هو المالك.
   /// يجب أيضاً فرض شرط owner_id وسياسة الحذف في Supabase RLS.
   Future<void> deleteProperty(String propertyId) async {
@@ -238,7 +257,19 @@ class PropertyService {
         throw Exception('يجب تسجيل الدخول لحذف الإعلان.');
       }
 
-      // لا نحذف مفضلات أي مستخدم قبل التأكد من ملكية الإعلان وحذف سجله.
+      // اقرأ روابط الوسائط أولاً، مع حصر الاستعلام في المالك الحالي.
+      final property = await _supabase
+          .from('properties')
+          .select('id, images, video')
+          .eq('id', propertyId)
+          .eq('owner_id', userId)
+          .maybeSingle();
+
+      if (property == null) {
+        throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
+      }
+
+      // احذف السجل أولاً؛ لا تنظف الملفات إذا لم تنجح عملية الحذف.
       final deletedProperty = await _supabase
           .from('properties')
           .delete()
@@ -251,8 +282,31 @@ class PropertyService {
         throw Exception('لم يتم حذف الإعلان. قد لا يكون تابعاً لحسابك أو لم يعد موجوداً.');
       }
 
+      // تنظيف الوسائط بعد نجاح حذف السجل. فشل التنظيف لا يعيد الإعلان،
+      // لكنه يُسجل حتى يمكن متابعة الملفات المتبقية لاحقاً.
+      try {
+        final imageUrls = property['images'];
+        final imagePaths = imageUrls is List
+            ? imageUrls
+                .map((url) => _storagePathFromPublicUrl(
+                    url?.toString(), 'property_images'))
+                .whereType<String>()
+                .toList()
+            : <String>[];
+        if (imagePaths.isNotEmpty) {
+          await _supabase.storage.from('property_images').remove(imagePaths);
+        }
+
+        final videoPath = _storagePathFromPublicUrl(
+            property['video']?.toString(), 'property_Videos');
+        if (videoPath != null) {
+          await _supabase.storage.from('property_Videos').remove([videoPath]);
+        }
+      } catch (cleanupError) {
+        debugPrint('تم حذف الإعلان، لكن تعذر تنظيف بعض الوسائط: $cleanupError');
+      }
+
       // تنظيف المفضلات يجب أن يتم عبر FK ON DELETE CASCADE في قاعدة البيانات.
-      // لا نحذف مفضلات المستخدمين الآخرين من عميل المالك؛ ذلك يتطلب صلاحية إدارية/عملية ذرية.
     } catch (e) {
       debugPrint("خطأ أثناء حذف العقار: $e");
       rethrow;
