@@ -73,16 +73,16 @@ class _CompaniesViewState extends State<CompaniesView> {
 
                 // استبعاد شركة المستخدم الحالي، ثم البحث والترتيب محلياً.
                 final docs = allData.where((data) {
-                  final ownerId = data['owner_id']?.toString() ?? '';
+                  final ownerId = (data['owner_id'] ?? data['ownerId'])?.toString() ?? '';
                   if (ownerId.isNotEmpty && ownerId == currentUserId) {
                     return false;
                   }
-                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  final name = (data['name'] ?? data['companyName'] ?? '').toString().toLowerCase();
                   return name.contains(_searchQuery);
                 }).toList()
                   ..sort((a, b) {
-                    final nameA = (a['name'] ?? '').toString();
-                    final nameB = (b['name'] ?? '').toString();
+                    final nameA = (a['name'] ?? a['companyName'] ?? '').toString();
+                    final nameB = (b['name'] ?? b['companyName'] ?? '').toString();
                     return nameA.compareTo(nameB);
                   });
 
@@ -142,10 +142,10 @@ class _CompaniesViewState extends State<CompaniesView> {
   }
 
   Widget _buildCompanyCard(Map<String, dynamic> data) {
-    final rawName = data['name']?.toString().trim() ?? '';
+    final rawName = (data['name'] ?? data['companyName'])?.toString().trim() ?? '';
     final displayName = rawName.isEmpty ? 'شركة عقارية' : rawName;
     final commercialRegister =
-        data['commercial_register']?.toString().trim() ?? '';
+        (data['commercial_register'] ?? data['crNumber'])?.toString().trim() ?? '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
