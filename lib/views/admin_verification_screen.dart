@@ -174,8 +174,8 @@ class AdminVerificationScreen extends StatelessWidget {
   // مربع حوار تأكيد الإجراء بشكل احترافي
   Future<void> _confirmAction(BuildContext context, String id, String status,
       String statusLabel) async {
-    final bool isAdmin = await AdminService().isAdmin();
-    if (!isAdmin) {
+    final bool isSuperAdmin = await AdminService().isSuperAdmin();
+    if (!isSuperAdmin) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
