@@ -10,6 +10,7 @@ import 'payment_screen.dart';
 import 'Edit_Property_Screen.dart' as edit;
 import '../services/property_service.dart';
 import '../services/favorite_service.dart';
+import '../services/report_service.dart';
 import '../utils/property_mapper.dart';
 
 class DetailsScreen extends StatefulWidget {
@@ -27,6 +28,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
   final FavoriteService _favoriteService =
       FavoriteService(); // تم تعريف الخدمة هنا لتجنب إعادة الإنشاء
   bool _isLoading = false;
+  bool _isSubmittingReport = false;
+  final ReportService _reportService = ReportService();
   late PropertyModel _currentProperty;
   late final Stream<bool> _favoriteStream; // تخزين الـ Stream لمنع إعادة إنشائه
 
@@ -68,6 +71,78 @@ class _DetailsScreenState extends State<DetailsScreen> {
         return 'السعر';
       default:
         return key;
+    }
+  }
+
+  Future<void> _showReportDialog() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('سجّل الدخول أولاً للإبلاغ عن الإعلان.')),
+      );
+      return;
+    }
+
+    final propertyId = _currentProperty.id;
+    if (propertyId == null || propertyId.isEmpty) return;
+
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('الإبلاغ عن الإعلان'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 500,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'اشرح سبب الإبلاغ (3 أحرف على الأقل)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.length < 3) return;
+              Navigator.pop(dialogContext, value);
+            },
+            child: const Text('إرسال البلاغ'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (reason == null || !mounted) return;
+    setState(() => _isSubmittingReport = true);
+    try {
+      await _reportService.submitPropertyReport(
+        propertyId: propertyId,
+        reason: reason,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إرسال البلاغ للمراجعة. شكرًا لمساعدتنا.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تعذر إرسال البلاغ: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmittingReport = false);
     }
   }
 
@@ -585,6 +660,30 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             color: Colors.grey.shade700,
                             height: 1.6),
                       ),
+                      if (!isOwner) ...[
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _isSubmittingReport ? null : _showReportDialog,
+                            icon: _isSubmittingReport
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.flag_outlined),
+                            label: Text(_isSubmittingReport
+                                ? 'جارٍ إرسال البلاغ...'
+                                : 'الإبلاغ عن هذا الإعلان'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red.shade700,
+                              side: BorderSide(color: Colors.red.shade300),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 100),
                     ],
                   ),
