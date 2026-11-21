@@ -203,7 +203,7 @@ class PropertyService {
 
       // Allowlist: لا تسمح لهذه الخدمة بتغيير المالك أو حالة المراجعة
       // أو التمييز أو البلاغات أو تواريخ الصلاحية.
-      const allowedFields = {'title', 'price', 'finishing', 'metadata'};
+      const allowedFields = {'title', 'price', 'finishing', 'metadata', 'floor', 'rooms'};
       final safeData = <String, dynamic>{
         for (final entry in updatedData.entries)
           if (allowedFields.contains(entry.key)) entry.key: entry.value,
