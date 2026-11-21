@@ -42,8 +42,8 @@ class AdminService {
     try {
       final response = await _supabase
           .from('admins')
-          .select()
-          .eq('id', currentUser.id)
+          .select('user_id, role')
+          .eq('user_id', currentUser.id)
           .maybeSingle();
 
       if (response != null) {
@@ -71,8 +71,8 @@ class AdminService {
     try {
       final response = await _supabase
           .from('admins')
-          .select()
-          .eq('id', currentUser.id)
+          .select('user_id, role')
+          .eq('user_id', currentUser.id)
           .maybeSingle();
 
       if (response != null) {
@@ -92,11 +92,11 @@ class AdminService {
     Map<String, dynamic>? adminData = await getAdminPermissions();
     if (adminData == null) return false;
 
-    List<dynamic> permissions =
-        (adminData['permissions'] as List<dynamic>?) ?? [];
-    String role = (adminData['role'] as String?) ?? 'user';
-
-    return permissions.contains(permission) || role == 'super_admin';
+    // The admins table has no permissions column. Until granular permissions
+    // are defined server-side, only super_admin receives explicit permission
+    // checks; all other roles are denied by default.
+    final role = (adminData['role'] as String?)?.trim().toLowerCase();
+    return role == 'super_admin';
   }
 
   /// إضافة عقار جديد مع تواريخ دقيقة
