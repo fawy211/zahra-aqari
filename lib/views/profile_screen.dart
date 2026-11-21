@@ -40,16 +40,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // مراقبة دقيقة لتغيرات تسجيل الدخول/الخروج
     _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
       if (!mounted) return;
+
+      final nextUser = data.session?.user ?? supabase.auth.currentUser;
+      final userChanged = _currentUser?.id != nextUser?.id;
+
       setState(() {
-        _currentUser = data.session?.user ?? supabase.auth.currentUser;
-        if (_currentUser != null) {
-          _loadUserData(_currentUser!.id, _currentUser!.email ?? '');
-        } else {
+        _currentUser = nextUser;
+
+        // امسح بيانات الحساب السابق قبل عرض بيانات الحساب الجديد.
+        if (nextUser == null || userChanged) {
           _userModel = null;
           _isAdmin = false;
           _walletData = {'balance': 0, 'currency': 'ج.م'};
+          _isLoadingData = nextUser != null;
         }
       });
+
+      if (nextUser != null) {
+        _loadUserData(nextUser.id, nextUser.email ?? '');
+      }
     });
   }
 
@@ -106,6 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _walletData = {'balance': 0, 'currency': 'ج.م'};
       }
     } catch (_) {
+      // تجاهل أخطاء الطلبات القديمة إذا تغيّر الحساب أثناء التحميل.
+      if (!mounted || _currentUser?.id != userId) return;
       _userModel = UserModel(uid: userId, email: email, name: 'مستخدم');
       _walletData = {'balance': 0, 'currency': 'ج.م'};
     } finally {
@@ -423,8 +434,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
 
-    if (result == true) {
+    if (result != true || !mounted) return;
+
+    try {
       await supabase.auth.signOut();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("تعذر تسجيل الخروج: $error"),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 }
