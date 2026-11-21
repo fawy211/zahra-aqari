@@ -282,7 +282,7 @@ class ReportsReviewScreen extends StatelessWidget {
                           elevation: 0,
                         ),
                         icon: const Icon(Icons.check_circle_outline),
-                        label: const Text("اعتماد الإعلان",
+                        label: const Text("إغلاق البلاغ",
                             style: TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.bold)),
                         onPressed: () async {
@@ -294,7 +294,7 @@ class ReportsReviewScreen extends StatelessWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text(
-                                      "تمت معالجة البلاغ وإزالة علامته بنجاح")),
+                                      "تم إغلاق البلاغ وإزالة علامته بنجاح")),
                             );
                           } catch (e) {
                             if (!context.mounted) return;
