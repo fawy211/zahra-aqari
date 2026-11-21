@@ -51,28 +51,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       );
 
       final user = res.user;
+      if (user == null) {
+        throw Exception('لم يتم إنشاء الحساب. حاول مرة أخرى.');
+      }
 
-      if (user != null) {
-        // 2. حفظ بيانات الحساب في جدول profiles الموحد.
-        // هذه هي الأعمدة الموجودة في مخطط Supabase الحالي؛ أما بيانات
-        // الشركة والهاتف فتظل في Auth metadata إلى أن نثبت أعمدتها في قاعدة
-        // البيانات، حتى لا ينجح إنشاء Auth ثم يفشل إدخال الملف الشخصي.
-        await supabase.from('profiles').upsert({
-          'id': user.id,
-          'email': _emailController.text.trim(),
-          'name': _nameController.text.trim(),
-          'user_type': _selectedRole,
-          'account_type': _selectedRole,
-          // بيانات الاشتراك والتوثيق لا يحددها العميل عند التسجيل.
-          'created_at': DateTime.now().toIso8601String(),
-        });
+      // 2. حفظ بيانات الحساب في جدول profiles الموحد.
+      // هذه هي الأعمدة الموجودة في مخطط Supabase الحالي؛ أما بيانات
+      // الشركة والهاتف فتظل في Auth metadata إلى أن نثبت أعمدتها في قاعدة
+      // البيانات، حتى لا ينجح إنشاء Auth ثم يفشل إدخال الملف الشخصي.
+      await supabase.from('profiles').upsert({
+        'id': user.id,
+        'email': _emailController.text.trim(),
+        'name': _nameController.text.trim(),
+        'user_type': _selectedRole,
+        'account_type': _selectedRole,
+        // بيانات الاشتراك والتوثيق لا يحددها العميل عند التسجيل.
+        'created_at': DateTime.now().toIso8601String(),
+      });
 
-        if (mounted) {
-          _showSnackBar("تم إنشاء الحساب بنجاح", Colors.green);
-          Navigator.pop(context);
-        }
+      if (mounted) {
+        final message = res.session == null
+            ? "تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني لإكمال تسجيل الدخول."
+            : "تم إنشاء الحساب بنجاح";
+        _showSnackBar(message, Colors.green);
+        Navigator.pop(context);
       }
     } on AuthException catch (e) {
+      if (!mounted) return;
       String errorMessage = "حدث خطأ أثناء إنشاء الحساب";
       if (e.message.contains('already registered') ||
           e.message.contains('User already registered')) {
@@ -84,6 +89,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       }
       _showSnackBar(errorMessage, Colors.red.shade700);
     } catch (e) {
+      if (!mounted) return;
       _showSnackBar("خطأ: ${e.toString()}", Colors.red.shade700);
     } finally {
       if (mounted) setState(() => _isLoading = false);
