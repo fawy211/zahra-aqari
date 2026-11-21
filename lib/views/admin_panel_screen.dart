@@ -95,7 +95,7 @@ class PropertyApprovalTile extends StatelessWidget {
       BuildContext context, String status, String statusName) async {
     try {
       final adminService = AdminService();
-      if (!await adminService.isAdmin()) {
+      if (!await adminService.isSuperAdmin()) {
         throw Exception('غير مصرح لك بمراجعة الإعلانات.');
       }
 
