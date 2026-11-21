@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/models/Office_Model.dart'; // تأكد من مسار المودل
 
@@ -13,10 +12,6 @@ class OfficeService {
         .order('created_at', ascending: false)
         .map((rows) {
           return rows.map((row) => OfficeModel.fromMap(row)).toList();
-        })
-        .handleError((error) {
-          debugPrint("خطأ في جلب المكاتب العقارية: $error");
-          return <OfficeModel>[];
         });
   }
 
