@@ -84,7 +84,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isLoading = true);
     String? uploadedAvatarPath;
-      try {
+    try {
         String? uploadedAvatarUrl = _currentAvatarUrl;
 
         // إذا قام المستخدم باختيار صورة جديدة، نقوم برفعها لـ Supabase Storage أولاً
@@ -173,10 +173,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
