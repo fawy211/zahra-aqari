@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/services/admin_service.dart';
+import 'admin/reports_review_screen.dart';
 
 class AdminPanelScreen extends StatelessWidget {
   const AdminPanelScreen({super.key});
@@ -21,6 +22,20 @@ class AdminPanelScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            tooltip: 'مراجعة البلاغات',
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ReportsReviewScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: supabase.from('properties').stream(primaryKey: ['id']).map(
