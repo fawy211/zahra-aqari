@@ -10,6 +10,7 @@ class CompanyService {
     return _supabase
         .from('companies')
         .stream(primaryKey: ['id'])
+        .eq('status', 'verified')
         .order('created_at', ascending: false)
         .map((rows) {
           return rows.map((row) => CompanyModel.fromMap(row)).toList();
