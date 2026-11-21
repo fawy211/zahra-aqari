@@ -1,25 +1,51 @@
 -- ZAHRA: secure property reports
 -- Apply this migration in Supabase SQL Editor before using the updated app.
+-- Safe to re-run: constraints, index, policies and trigger are guarded/replaced.
 
 begin;
 
--- The reports table was verified empty before preparing this migration.
 alter table public.reports
   alter column status set default 'pending',
   alter column status set not null;
 
-alter table public.reports
-  add constraint reports_target_type_check
-    check (target_type = 'property'),
-  add constraint reports_reason_check
-    check (char_length(btrim(reason)) between 3 and 500),
-  add constraint reports_status_check
-    check (status in ('pending', 'resolved', 'dismissed'));
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.reports'::regclass
+      and conname = 'reports_target_type_check'
+  ) then
+    alter table public.reports
+      add constraint reports_target_type_check
+      check (target_type = 'property');
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.reports'::regclass
+      and conname = 'reports_reason_check'
+  ) then
+    alter table public.reports
+      add constraint reports_reason_check
+      check (char_length(btrim(reason)) between 3 and 500);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.reports'::regclass
+      and conname = 'reports_status_check'
+  ) then
+    alter table public.reports
+      add constraint reports_status_check
+      check (status in ('pending', 'resolved', 'dismissed'));
+  end if;
+end
+$$;
 
 create unique index if not exists reports_one_per_user_target_uidx
   on public.reports (user_id, target_type, target_id);
 
--- Least-privilege grants: clients may submit only the four intended fields.
+-- Least-privilege grants: clients may submit only the intended fields.
 revoke all privileges on table public.reports from public, anon, authenticated;
 grant select on table public.reports to authenticated;
 grant insert (user_id, target_type, target_id, reason)
