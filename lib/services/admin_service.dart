@@ -87,16 +87,11 @@ class AdminService {
     return null;
   }
 
-  /// التحقق من صلاحية معينة
-  Future<bool> hasPermission(String permission) async {
-    Map<String, dynamic>? adminData = await getAdminPermissions();
-    if (adminData == null) return false;
-
-    // The admins table has no permissions column. Until granular permissions
-    // are defined server-side, only super_admin receives explicit permission
-    // checks; all other roles are denied by default.
-    final role = (adminData['role'] as String?)?.trim().toLowerCase();
-    return role == 'super_admin';
+  /// التحقق من صلاحية تفصيلية
+  /// لا يوجد في مخطط admins الحالي جدول/عمود لصلاحيات تفصيلية؛ لذلك نرفض
+  /// هذه الطلبات افتراضياً حتى يتم اعتماد مصفوفة أدوار موثقة من الخادم.
+  Future<bool> hasPermission(String _permission) async {
+    return false;
   }
 
   /// إضافة عقار جديد مع تواريخ دقيقة
