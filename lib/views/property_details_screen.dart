@@ -782,16 +782,44 @@ class _DetailsScreenState extends State<DetailsScreen> {
               onTap: () async {
                 Navigator.pop(context);
                 if (phone.isNotEmpty) {
-                  // تنظيف رقم الهاتف وإزالة المسافات
-                  String formattedPhone = phone.replaceAll(RegExp(r'\s+'), '');
-                  if (formattedPhone.startsWith('01')) {
-                    formattedPhone = '+20$formattedPhone';
+                  // تحويل الرقم إلى أرقام دولية فقط حتى يقبله رابط wa.me.
+                  var formattedPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (formattedPhone.startsWith('00')) {
+                    formattedPhone = formattedPhone.substring(2);
                   }
-                  final whatsappUrl = Uri.parse(
-                      "https://wa.me/$formattedPhone?text=${Uri.encodeComponent('مرحباً، أنا مهتم بالعقار "${_currentProperty.title}" المعروض على تطبيق زهرة العقاري.')}");
+                  if (formattedPhone.startsWith('0')) {
+                    formattedPhone = '20${formattedPhone.substring(1)}';
+                  }
+
+                  // أرقام WhatsApp الدولية يجب أن تكون بين 8 و15 رقماً.
+                  if (formattedPhone.length < 8 || formattedPhone.length > 15) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('رقم الهاتف غير صالح للتواصل عبر واتساب'),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  final whatsappUrl = Uri.https(
+                    'wa.me',
+                    '/$formattedPhone',
+                    {
+                      'text':
+                          'مرحباً، أنا مهتم بالعقار "${_currentProperty.title}" المعروض على تطبيق زهرة العقاري.',
+                    },
+                  );
                   if (await canLaunchUrl(whatsappUrl)) {
                     await launchUrl(whatsappUrl,
                         mode: LaunchMode.externalApplication);
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('تعذر فتح واتساب على هذا الجهاز'),
+                      ),
+                    );
                   }
                 }
               },
