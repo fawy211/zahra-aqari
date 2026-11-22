@@ -19,6 +19,8 @@ END
 $$;
 
 REVOKE ALL PRIVILEGES ON TABLE public.admins FROM PUBLIC, anon, authenticated;
+REVOKE ALL (id, user_id, role, created_at)
+  ON TABLE public.admins FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.admins TO authenticated;
 
 DROP POLICY IF EXISTS "Admins are viewable by owner" ON public.admins;
