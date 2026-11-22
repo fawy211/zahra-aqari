@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/services/admin_service.dart';
 import 'admin/reports_review_screen.dart';
+import 'admin/admin_management_screen.dart';
 
 class AdminPanelScreen extends StatelessWidget {
   const AdminPanelScreen({super.key});
@@ -32,6 +33,24 @@ class AdminPanelScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) => const ReportsReviewScreen(),
                 ),
+              );
+            },
+          ),
+          FutureBuilder<bool>(
+            future: AdminService().isSuperAdmin(),
+            builder: (context, snapshot) {
+              if (snapshot.data != true) return const SizedBox.shrink();
+              return IconButton(
+                tooltip: 'إدارة المشرفين',
+                icon: const Icon(Icons.manage_accounts_outlined),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminManagementScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),

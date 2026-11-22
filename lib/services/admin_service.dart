@@ -105,6 +105,38 @@ class AdminService {
     return false;
   }
 
+
+  /// جلب قائمة المشرفين عبر RPC لا يكشفها إلا للمشرف الأعلى.
+  Future<List<Map<String, dynamic>>> listAdmins() async {
+    final response = await _supabase.rpc('admin_list_admins');
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  /// إضافة مستخدم موجود في profiles كمشرف.
+  Future<void> addAdmin(String userId, String role) async {
+    await _supabase.rpc('admin_add', params: {
+      'p_user_id': userId.trim(),
+      'p_role': role,
+    });
+  }
+
+  /// تغيير دور مشرف موجود.
+  Future<void> updateAdminRole(String userId, String role) async {
+    await _supabase.rpc('admin_update_role', params: {
+      'p_user_id': userId,
+      'p_role': role,
+    });
+    clearCache();
+  }
+
+  /// حذف صلاحية الإشراف عن مستخدم.
+  Future<void> removeAdmin(String userId) async {
+    await _supabase.rpc('admin_remove', params: {
+      'p_user_id': userId,
+    });
+    clearCache();
+  }
+
   /// إضافة عقار جديد مع تواريخ دقيقة
   Future<void> addProperty(PropertyModel property) async {
     if (!await isSuperAdmin()) {
