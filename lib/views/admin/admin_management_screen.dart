@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/admin_service.dart';
 
 class AdminManagementScreen extends StatefulWidget {
@@ -215,7 +216,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
       );
     }
 
-    final currentUserId = AdminServiceUser.currentId;
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
