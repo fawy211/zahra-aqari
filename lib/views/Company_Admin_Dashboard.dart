@@ -101,15 +101,15 @@ class CompanyAdminDashboard extends StatelessWidget {
       return _statsContainer(0, 0);
     }
 
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: supabase
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: supabase
           .from('properties')
-          .stream(primaryKey: ['id'])
+          .select('id')
           .eq('owner_id', ownerId)
-          .eq('metadata->>company_id', companyId),
+          .contains('metadata', {'company_id': companyId}),
       builder: (context, propertySnapshot) {
         final propertiesCount =
-            propertySnapshot.hasData ? propertySnapshot.data!.length : 0;
+            propertySnapshot.data?.length ?? 0;
 
         return FutureBuilder<Map<String, dynamic>?>(
           future: supabase
