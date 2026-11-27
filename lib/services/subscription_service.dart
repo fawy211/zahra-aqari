@@ -5,37 +5,9 @@ import '../models/subscription_plan.dart';
 class SubscriptionService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // القائمة الافتراضية للخطط
-  final List<SubscriptionPlan> availablePlans = [
-    SubscriptionPlan(
-      id: '1',
-      name: 'مجانية',
-      price: 0,
-      maxAdsPerMonth: 1,
-      maxVideoDuration: 60,
-    ),
-    SubscriptionPlan(
-      id: '2',
-      name: 'عامة',
-      price: 150,
-      maxAdsPerMonth: 5,
-      maxVideoDuration: 180,
-    ),
-    SubscriptionPlan(
-      id: '3',
-      name: 'مكاتب',
-      price: 250,
-      maxAdsPerMonth: 10,
-      maxVideoDuration: 300,
-    ),
-    SubscriptionPlan(
-      id: '4',
-      name: 'شركات',
-      price: 500,
-      maxAdsPerMonth: 20,
-      maxVideoDuration: 300,
-    ),
-  ];
+  // مصدر موحد لتعريفات الباقات حتى لا تختلف الأسماء والأسعار
+  // والحدود بين شاشة الاشتراك والخدمات الأخرى.
+  List<SubscriptionPlan> get availablePlans => SubscriptionPlan.availablePlans;
 
   /// جلب الخطط من قاعدة بيانات Supabase (مع العودة للقائمة المحلية عند حدوث خطأ)
   Future<List<SubscriptionPlan>> fetchPlans() async {
