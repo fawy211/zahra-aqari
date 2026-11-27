@@ -54,13 +54,13 @@ class CompanyProfileView extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: supabase
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: supabase
                   .from('properties')
-                  .stream(primaryKey: ['id'])
+                  .select()
                   .eq('owner_id', ownerId)
-                  .eq('metadata->>company_id', companyId)
-                  .eq('status', 'verified'),
+                  .eq('status', 'verified')
+                  .contains('metadata', {'company_id': companyId}),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
