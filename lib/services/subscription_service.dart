@@ -48,8 +48,8 @@ class SubscriptionService {
             id: data['id']?.toString() ?? '',
             name: data['name'] as String? ?? '',
             price: data['price'] is num
-                ? data['price'].toInt()
-                : int.tryParse('${data['price']}') ?? 0,
+                ? (data['price'] as num).toDouble()
+                : double.tryParse('${data['price']}') ?? 0,
             maxAdsPerMonth: data['max_ads_per_month'] is num
                 ? (data['max_ads_per_month'] as num).toInt()
                 : int.tryParse('${data['max_ads_per_month']}') ?? 0,
