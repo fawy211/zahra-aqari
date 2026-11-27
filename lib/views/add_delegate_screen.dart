@@ -46,7 +46,7 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             const Text(
-              "أدخل البريد الإلكتروني المرتبط بحساب المندوب. سيحصل على صلاحيات الفريق بعد قبول الدعوة من حسابه.",
+              "أدخل البريد الإلكتروني المرتبط بحساب المندوب. سيتم إنشاء دعوة داخل النظام، لكن لن يُرسل بريد إلكتروني تلقائياً حالياً، ولن تُمنح الصلاحيات قبل قبول الدعوة من حساب المندوب.",
               style: TextStyle(color: Colors.black54, height: 1.5),
             ),
             const SizedBox(height: 18),
@@ -123,7 +123,7 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
                         ),
                       )
                     : const Text(
-                        "إرسال الدعوة",
+                        "إنشاء الدعوة",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -190,6 +190,9 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
       }
 
       final email = emailController.text.trim().toLowerCase();
+      if (user.email != null && user.email!.trim().toLowerCase() == email) {
+        throw Exception("لا يمكنك دعوة بريدك الإلكتروني كعضو في فريقك");
+      }
       final expiresAt =
           DateTime.now().toUtc().add(const Duration(days: 7)).toIso8601String();
 
@@ -207,7 +210,9 @@ class _AddDelegateScreenState extends State<AddDelegateScreen> {
       });
 
       if (!mounted) return;
-      _showMessage("تم إنشاء الدعوة. يجب على المندوب قبولها من حسابه.");
+      _showMessage(
+        "تم إنشاء الدعوة داخل النظام. لم يتم إرسال بريد إلكتروني تلقائياً، ويجب استكمال قبولها من حساب المندوب.",
+      );
       Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
