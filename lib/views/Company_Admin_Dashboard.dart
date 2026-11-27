@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/features/property/screens/add_property_screen.dart';
+import 'package:aqari_app/views/add_delegate_screen.dart';
 
 class CompanyAdminDashboard extends StatelessWidget {
   final String companyId;
@@ -24,10 +25,7 @@ class CompanyAdminDashboard extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // شريط الإحصائيات السريع الديناميكي من Supabase
           _buildQuickStatsSection(),
-
-          // شبكة خيارات التحكم الإداري
           Expanded(
             child: GridView.count(
               padding: const EdgeInsets.all(16),
@@ -42,7 +40,13 @@ class CompanyAdminDashboard extends StatelessWidget {
                   Icons.people_rounded,
                   Colors.blue,
                   () {
-                    // TODO: توجيه لشاشة إدارة المندوبين
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddDelegateScreen(companyId: companyId),
+                      ),
+                    );
                   },
                 ),
                 _buildMenuGridItem(
@@ -54,7 +58,8 @@ class CompanyAdminDashboard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const AddPropertyScreen()),
+                        builder: (_) => const AddPropertyScreen(),
+                      ),
                     );
                   },
                 ),
@@ -63,27 +68,21 @@ class CompanyAdminDashboard extends StatelessWidget {
                   "الرسائل",
                   Icons.chat_bubble_rounded,
                   Colors.orange,
-                  () {
-                    // TODO: توجيه لشاشة المحادثات الخاصة بالشركة
-                  },
+                  () {},
                 ),
                 _buildMenuGridItem(
                   context,
                   "إحصائيات",
                   Icons.bar_chart_rounded,
                   Colors.purple,
-                  () {
-                    // TODO: توجيه لشاشة الإحصائيات التفصيلية
-                  },
+                  () {},
                 ),
                 _buildMenuGridItem(
                   context,
                   "الاشتراك",
                   Icons.payment_rounded,
                   Colors.green,
-                  () {
-                    // TODO: توجيه لشاشة الاشتراكات وباقات التوثيق
-                  },
+                  () {},
                 ),
               ],
             ),
@@ -93,56 +92,76 @@ class CompanyAdminDashboard extends StatelessWidget {
     );
   }
 
-  // قسم الإحصائيات السريعة باستخدام StreamBuilder لجلب الأرقام الحقيقية من Supabase
   Widget _buildQuickStatsSection() {
-    final SupabaseClient supabase = Supabase.instance.client;
+    final supabase = Supabase.instance.client;
 
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase
           .from('properties')
-          .stream(primaryKey: ['id']).eq('owner_id', companyId),
+          .stream(primaryKey: ['id'])
+          .eq('owner_id', companyId),
       builder: (context, propertySnapshot) {
         final propertiesCount =
             propertySnapshot.hasData ? propertySnapshot.data!.length : 0;
 
-        return StreamBuilder<List<Map<String, dynamic>>>(
-          stream: supabase
-              .from('users')
-              .stream(primaryKey: ['id'])
-              .eq('companyId', companyId)
-              .eq('role', 'agent'),
-          builder: (context, agentSnapshot) {
-            final agentsCount =
-                agentSnapshot.hasData ? agentSnapshot.data!.length : 0;
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: supabase
+              .from('workspaces')
+              .select('id')
+              .eq('company_id', companyId)
+              .eq('workspace_type', 'company')
+              .maybeSingle(),
+          builder: (context, workspaceSnapshot) {
+            final workspaceId =
+                workspaceSnapshot.data?['id']?.toString();
 
-            return Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _statItem("عقارات", propertiesCount.toString(),
-                      const Color(0xFF003366)),
-                  _statItem("رسائل", "0", Colors.orange),
-                  _statItem("مناديب", agentsCount.toString(), Colors.teal),
-                ],
-              ),
+            if (workspaceId == null) {
+              return _statsContainer(propertiesCount, 0);
+            }
+
+            return StreamBuilder<List<Map<String, dynamic>>>(
+              stream: supabase
+                  .from('workspace_members')
+                  .stream(primaryKey: ['workspace_id', 'user_id'])
+                  .eq('workspace_id', workspaceId),
+              builder: (context, membersSnapshot) {
+                final members = membersSnapshot.data ?? [];
+                final delegatesCount =
+                    members.where((member) => member['role'] != 'owner').length;
+                return _statsContainer(propertiesCount, delegatesCount);
+              },
             );
           },
         );
       },
+    );
+  }
+
+  Widget _statsContainer(int propertiesCount, int delegatesCount) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _statItem(
+              "عقارات", propertiesCount.toString(), const Color(0xFF003366)),
+          _statItem("رسائل", "0", Colors.orange),
+          _statItem("أعضاء الفريق", delegatesCount.toString(), Colors.teal),
+        ],
+      ),
     );
   }
 
