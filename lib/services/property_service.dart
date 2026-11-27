@@ -205,11 +205,26 @@ class PropertyService {
 
       // Allowlist: لا تسمح لهذه الخدمة بتغيير المالك أو حالة المراجعة
       // أو التمييز أو البلاغات أو تواريخ الصلاحية.
-      const allowedFields = {'title', 'price', 'finishing', 'metadata', 'floor', 'rooms'};
+      // الدور وعدد الغرف جزء من metadata في نموذج العقار؛ لا نرسلها
+      // كأعمدة مستقلة حتى لا يفشل التحديث على قواعد البيانات التي لا تحتويها.
       final safeData = <String, dynamic>{
-        for (final entry in updatedData.entries)
-          if (allowedFields.contains(entry.key)) entry.key: entry.value,
+        for (final key in const ['title', 'price', 'finishing'])
+          if (updatedData.containsKey(key)) key: updatedData[key],
       };
+
+      final rawMetadata = updatedData['metadata'];
+      final metadata = rawMetadata is Map
+          ? Map<String, dynamic>.from(rawMetadata)
+          : <String, dynamic>{};
+      for (final key in const ['floor', 'rooms']) {
+        if (updatedData.containsKey(key)) {
+          metadata[key] = updatedData[key];
+        }
+      }
+      if (metadata.isNotEmpty || updatedData.containsKey('metadata')) {
+        safeData['metadata'] = metadata;
+      }
+
       if (safeData.isEmpty) {
         throw Exception('لا توجد حقول مسموح بتحديثها.');
       }
