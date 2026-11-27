@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:aqari_app/models/Company_Model.dart';
+import 'package:aqari_app/services/Company_Service.dart';
 import 'package:aqari_app/widgets/custom_header.dart';
 import 'package:aqari_app/views/company_profile_view.dart';
 
@@ -12,15 +13,8 @@ class CompaniesView extends StatefulWidget {
 
 class _CompaniesViewState extends State<CompaniesView> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = "";
-  final SupabaseClient _supabase = Supabase.instance.client;
-  late final String? currentUserId;
-
-  @override
-  void initState() {
-    super.initState();
-    currentUserId = _supabase.auth.currentUser?.id;
-  }
+  final CompanyService _companyService = CompanyService();
+  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -30,6 +24,8 @@ class _CompaniesViewState extends State<CompaniesView> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = _companyService.currentUserId;
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100),
@@ -40,68 +36,50 @@ class _CompaniesViewState extends State<CompaniesView> {
         children: [
           _buildSearchBar(),
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              // الشركات محفوظة في جدول companies، لا في جدول users القديم.
-              stream: _supabase.from('companies').stream(primaryKey: ['id']),
+            child: StreamBuilder<List<CompanyModel>>(
+              stream: _companyService.getCompanies(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF003366)),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Text(
-                        "حدث خطأ في تحميل البيانات:\n${snapshot.error}",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey[700], fontSize: 13),
-                      ),
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF003366),
                     ),
                   );
                 }
 
-                final allData = snapshot.data ?? [];
-
-                if (allData.isEmpty) {
+                if (snapshot.hasError) {
                   return const Center(
-                    child: Text("لا توجد شركات مسجلة حالياً",
-                        style: TextStyle(color: Colors.grey)),
+                    child: Text('تعذر تحميل قائمة الشركات حالياً'),
                   );
                 }
 
-                // استبعاد شركة المستخدم الحالي، ثم البحث والترتيب محلياً.
-                final docs = allData.where((data) {
-                  final ownerId = (data['owner_id'] ?? data['ownerId'])?.toString() ?? '';
-                  if (ownerId.isNotEmpty && ownerId == currentUserId) {
+                final companies = (snapshot.data ?? []).where((company) {
+                  if (company.ownerId != null &&
+                      company.ownerId == currentUserId) {
                     return false;
                   }
-                  final name = (data['name'] ?? data['companyName'] ?? '').toString().toLowerCase();
-                  return name.contains(_searchQuery);
+                  return company.name.toLowerCase().contains(_searchQuery);
                 }).toList()
-                  ..sort((a, b) {
-                    final nameA = (a['name'] ?? a['companyName'] ?? '').toString();
-                    final nameB = (b['name'] ?? b['companyName'] ?? '').toString();
-                    return nameA.compareTo(nameB);
-                  });
+                  ..sort((a, b) => a.name.compareTo(b.name));
 
-                if (docs.isEmpty) {
-                  return const Center(
-                    child: Text("لا توجد نتائج مطابقة للبحث",
-                        style: TextStyle(color: Colors.grey)),
+                if (companies.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _searchQuery.isEmpty
+                          ? 'لا توجد شركات مسجلة حالياً'
+                          : 'لا توجد نتائج مطابقة للبحث',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
                   );
                 }
 
                 return ListView.builder(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final data = docs[index];
-                    return _buildCompanyCard(data);
-                  },
+                  itemCount: companies.length,
+                  itemBuilder: (context, index) =>
+                      _buildCompanyCard(companies[index]),
                 );
               },
             ),
@@ -111,15 +89,13 @@ class _CompaniesViewState extends State<CompaniesView> {
     );
   }
 
-  // شريط البحث بتصميم أنيق
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.all(14),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           labelText: 'ابحث عن شركة عقارية...',
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
           prefixIcon: const Icon(Icons.search, color: Color(0xFF003366)),
           filled: true,
           fillColor: Colors.white,
@@ -133,42 +109,51 @@ class _CompaniesViewState extends State<CompaniesView> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF003366), width: 1.5),
+            borderSide: const BorderSide(
+              color: Color(0xFF003366),
+              width: 1.5,
+            ),
           ),
         ),
-        onChanged: (value) =>
-            setState(() => _searchQuery = value.trim().toLowerCase()),
+        onChanged: (value) => setState(
+          () => _searchQuery = value.trim().toLowerCase(),
+        ),
       ),
     );
   }
 
-  Widget _buildCompanyCard(Map<String, dynamic> data) {
-    final rawName = (data['name'] ?? data['companyName'])?.toString().trim() ?? '';
-    final displayName = rawName.isEmpty ? 'شركة عقارية' : rawName;
-    final commercialRegister =
-        (data['commercial_register'] ?? data['crNumber'])?.toString().trim() ?? '';
-
+  Widget _buildCompanyCard(CompanyModel company) {
+    final name = company.name;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       elevation: 1.5,
       shadowColor: Colors.black12,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         onTap: () {
-          final ownerId = data['owner_id']?.toString() ?? '';
-          if (ownerId.isEmpty) {
+          final companyId = company.id;
+          final ownerId = company.ownerId;
+          if (companyId == null ||
+              companyId.isEmpty ||
+              ownerId == null ||
+              ownerId.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('بيانات الشركة غير مكتملة')),
+              const SnackBar(
+                content: Text('بيانات الشركة غير مكتملة لفتح الملف الشخصي'),
+              ),
             );
             return;
           }
+
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => CompanyProfileView(
+                companyId: companyId,
                 ownerId: ownerId,
-                companyName: displayName,
+                companyName: name,
               ),
             ),
           );
@@ -176,7 +161,7 @@ class _CompaniesViewState extends State<CompaniesView> {
         leading: CircleAvatar(
           backgroundColor: const Color(0xFF003366).withOpacity(0.1),
           child: Text(
-            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'C',
+            name.isNotEmpty ? name[0].toUpperCase() : 'C',
             style: const TextStyle(
               color: Color(0xFF003366),
               fontWeight: FontWeight.bold,
@@ -184,26 +169,20 @@ class _CompaniesViewState extends State<CompaniesView> {
           ),
         ),
         title: Text(
-          displayName,
+          name,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,
             color: Color(0xFF003366),
           ),
         ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            commercialRegister.isNotEmpty
-                ? 'السجل التجاري: $commercialRegister'
-                : 'شركة عقارية',
-            style: TextStyle(
-              color: Colors.blue[800],
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+        subtitle: Text(
+          company.businessField?.isNotEmpty == true
+              ? company.businessField!
+              : 'شركة عقارية',
+          style: TextStyle(color: Colors.blue[800], fontSize: 12),
         ),
+        trailing: const Icon(Icons.chevron_left, color: Color(0xFF003366)),
       ),
     );
   }
