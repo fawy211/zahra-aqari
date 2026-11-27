@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart'; // تأكد من إضافة intl في الـ pubspec
+import 'package:intl/intl.dart';
 import 'package:aqari_app/views/Chat_Screen.dart';
 
 class ChatListScreen extends StatelessWidget {
@@ -8,7 +8,7 @@ class ChatListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final SupabaseClient supabase = Supabase.instance.client;
+    final supabase = Supabase.instance.client;
     final currentUser = supabase.auth.currentUser;
 
     if (currentUser == null) {
@@ -18,7 +18,10 @@ class ChatListScreen extends StatelessWidget {
           title: const Text(
             "رسائلي",
             style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
           backgroundColor: const Color(0xFF003366),
           elevation: 0,
@@ -39,7 +42,10 @@ class ChatListScreen extends StatelessWidget {
         title: const Text(
           "رسائلي",
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         backgroundColor: const Color(0xFF003366),
         elevation: 0,
@@ -47,10 +53,10 @@ class ChatListScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        // في Supabase، يتم استخدام الـ stream للمتابعة الحية للجدول وترتيبه تنازلياً
         stream: supabase
             .from('chats')
-            .stream(primaryKey: ['id']).order('updated_at', ascending: false),
+            .stream(primaryKey: ['id'])
+            .order('updated_at', ascending: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -60,7 +66,7 @@ class ChatListScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(20),
                 child: Text(
                   "حدث خطأ أثناء تحميل المحادثات:\n${snapshot.error}",
                   textAlign: TextAlign.center,
@@ -70,28 +76,29 @@ class ChatListScreen extends StatelessWidget {
             );
           }
 
-          // فلترة المحادثات محلياً لتشمل فقط المحادثات التي يكون المستخدم الحالي مشاركاً فيها
-          // (تأكد أن عمود participants في قاعدة البيانات مخزن كـ Array أو JSON يحتوي على IDs المستخدمين)
-          final allChats = snapshot.data ?? [];
-          final docs = allChats.where((chat) {
+          final chats = (snapshot.data ?? []).where((chat) {
             return chat['user1_id'] == currentUser.id ||
                 chat['user2_id'] == currentUser.id;
           }).toList();
 
-          if (docs.isEmpty) {
+          if (chats.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline_rounded,
-                      size: 64, color: Colors.grey.shade400),
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
                   const SizedBox(height: 12),
                   const Text(
                     "لا توجد محادثات حالياً",
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
@@ -100,135 +107,154 @@ class ChatListScreen extends StatelessWidget {
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: docs.length,
+            itemCount: chats.length,
             itemBuilder: (context, index) {
-              final chatData = docs[index];
-              final String chatId = chatData['id']?.toString() ?? '';
+              final chat = chats[index];
+              final chatId = chat['id']?.toString() ?? '';
+              final otherUserId = chat['user1_id'] == currentUser.id
+                  ? chat['user2_id']?.toString()
+                  : chat['user1_id']?.toString();
 
-              String chatName = "محادثة";
-              String lastMessage =
-                  "اضغط لعرض الرسائل";
-
-              // معالجة وقت الرسالة في Supabase (عادة ما يُخزن كـ String بنظام ISO8601 أو Timestamp)
-              String time = "";
-              var rawTime = chatData['updated_at'];
-              if (rawTime != null) {
-                DateTime? messageDate;
-                if (rawTime is String) {
-                  messageDate = DateTime.tryParse(rawTime)?.toLocal();
-                } else if (rawTime is DateTime) {
-                  messageDate = rawTime;
-                }
-
-                if (messageDate != null) {
-                  DateTime now = DateTime.now();
-
-                  // إذا كانت الرسالة اليوم، نعرض الوقت فقط، وإلا نعرض التاريخ
-                  if (messageDate.year == now.year &&
-                      messageDate.month == now.month &&
-                      messageDate.day == now.day) {
-                    time = DateFormat('HH:mm').format(messageDate);
-                  } else {
-                    time = DateFormat('dd/MM').format(messageDate);
-                  }
-                }
+              DateTime? updatedAt;
+              final rawTime = chat['updated_at'];
+              if (rawTime is String) {
+                updatedAt = DateTime.tryParse(rawTime)?.toLocal();
+              } else if (rawTime is DateTime) {
+                updatedAt = rawTime.toLocal();
               }
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+              final now = DateTime.now();
+              final time = updatedAt == null
+                  ? ''
+                  : (updatedAt.year == now.year &&
+                          updatedAt.month == now.month &&
+                          updatedAt.day == now.day
+                      ? DateFormat('HH:mm').format(updatedAt)
+                      : DateFormat('dd/MM').format(updatedAt));
+
+              if (chatId.isEmpty || otherUserId == null || otherUserId.isEmpty) {
+                return const SizedBox.shrink();
+              }
+
+              return FutureBuilder<Map<String, dynamic>?>(
+                future: supabase
+                    .from('profiles_public')
+                    .select('name')
+                    .eq('id', otherUserId)
+                    .maybeSingle(),
+                builder: (context, profileSnapshot) {
+                  final rawName = profileSnapshot.data?['name']?.toString();
+                  final chatName = rawName != null && rawName.trim().isNotEmpty
+                      ? rawName.trim()
+                      : 'محادثة';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.grey.shade100),
                     ),
-                  ],
-                  border: Border.all(color: Colors.grey.shade100),
-                ),
-                child: ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  leading: CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xFF003366).withOpacity(0.1),
-                    child: Text(
-                      chatName.isNotEmpty ? chatName[0].toUpperCase() : "م",
-                      style: const TextStyle(
-                        color: Color(0xFF003366),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
                       ),
-                    ),
-                  ),
-                  title: Text(
-                    chatName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Color(0xFF003366),
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: supabase
-                          .from('messages')
-                          .stream(primaryKey: ['id'])
-                          .eq('chat_id', chatId)
-                          .order('created_at', ascending: false),
-                      builder: (context, messageSnapshot) {
-                        final messages = messageSnapshot.data ?? [];
-                        final latestMessage = messages.isNotEmpty
-                            ? messages.first['content']?.toString()
-                            : null;
-                        final preview = messageSnapshot.hasError
-                            ? 'تعذر تحميل آخر رسالة'
-                            : (latestMessage == null || latestMessage.isEmpty
-                                ? lastMessage
-                                : latestMessage);
-                        return Text(
-                          preview,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      leading: CircleAvatar(
+                        radius: 24,
+                        backgroundColor:
+                            const Color(0xFF003366).withOpacity(0.1),
+                        child: Text(
+                          chatName[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF003366),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      title: Text(
+                        chatName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xFF003366),
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: StreamBuilder<List<Map<String, dynamic>>>(
+                          stream: supabase
+                              .from('messages')
+                              .stream(primaryKey: ['id'])
+                              .eq('chat_id', chatId)
+                              .order('created_at', ascending: false),
+                          builder: (context, messageSnapshot) {
+                            final messages = messageSnapshot.data ?? [];
+                            final latest = messages.isNotEmpty
+                                ? messages.first['content']?.toString()
+                                : null;
+                            final preview = messageSnapshot.hasError
+                                ? 'تعذر تحميل آخر رسالة'
+                                : (latest == null || latest.isEmpty
+                                    ? 'اضغط لعرض الرسائل'
+                                    : latest);
+                            return Text(
+                              preview,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            time,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 12,
+                            color: Colors.grey,
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatScreen(
+                              chatId: chatId,
+                              otherUserName: chatName,
+                            ),
+                          ),
                         );
                       },
                     ),
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        time,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 6),
-                      const Icon(Icons.arrow_forward_ios,
-                          size: 12, color: Colors.grey),
-                    ],
-                  ),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatScreen(
-                        chatId: chatId,
-                        otherUserName: chatName,
-                      ),
-                    ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           );
