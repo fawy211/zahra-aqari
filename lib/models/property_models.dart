@@ -164,7 +164,9 @@ class PropertyModel {
       images: map['images'] != null ? List<String>.from(map['images']) : [],
       video: map['video']?.toString(),
       ownerId: map['ownerId']?.toString() ?? map['owner_id']?.toString() ?? '',
-      companyId: map['companyId']?.toString() ?? map['company_id']?.toString(),
+      companyId: map['companyId']?.toString() ??
+          map['company_id']?.toString() ??
+          (map['metadata'] is Map ? (map['metadata']['company_id']?.toString()) : null),
       status: map['status'] ?? 'pending',
       metadata: _mergeMetadata(map),
       createdAt: map['created_at'] != null
@@ -205,7 +207,11 @@ class PropertyModel {
       'images': images,
       'owner_id': ownerId,
       'status': status,
-      'metadata': metadata,
+      'metadata': {
+        ...metadata,
+        if (companyId != null && companyId!.isNotEmpty)
+          'company_id': companyId,
+      },
       'is_featured': isFeatured,
       'is_reported': isReported,
       'report_count': reportCount,
@@ -215,9 +221,6 @@ class PropertyModel {
       data['video'] = video;
     }
 
-    if (companyId != null) {
-      data['company_id'] = companyId;
-    }
     if (createdAt != null) {
       data['created_at'] = createdAt!.toIso8601String();
     }
