@@ -149,8 +149,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               // استخراج وتحويل التاريخ القادم من Supabase (غالباً ينزل كـ String بصيغة ISO أو DateTime)
               DateTime date;
               if (data['created_at'] != null) {
-                date = DateTime.tryParse(data['created_at'].toString()) ??
-                    DateTime.now();
+                date = (DateTime.tryParse(data['created_at'].toString()) ??
+                    DateTime.now()).toLocal();
               } else {
                 date = DateTime.now();
               }
@@ -276,7 +276,7 @@ class PaymentCard extends StatelessWidget {
         bgColor = Colors.orange.withOpacity(0.1);
         break;
       case 'failed':
-        text = 'مفشلة';
+        text = 'فاشلة';
         color = Colors.red.shade700;
         bgColor = Colors.red.withOpacity(0.1);
         break;
