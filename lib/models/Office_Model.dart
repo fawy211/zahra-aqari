@@ -58,7 +58,10 @@ class OfficeModel {
       id: id ?? map['id']?.toString(),
       name: readString(['name'], fallback: 'مكتب بدون اسم'),
       phone: readString(['contact_phone', 'phone', 'phone_number']),
-      email: readString(['contact_email', 'email']),
+      email: (() {
+        final value = readString(['contact_email', 'email']);
+        return value.isEmpty ? null : value;
+      })(),
       logo: readString(['logo_url', 'logoUrl', 'logo']),
       address: readString(['address', 'location'], fallback: 'غير محدد'),
       propertiesCount: readInt(['properties_count', 'propertiesCount']),
