@@ -6,9 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddPropertyScreen extends ConsumerStatefulWidget {
-  const AddPropertyScreen({super.key});
+  final String? companyId;
+
+  const AddPropertyScreen({super.key, this.companyId});
 
   @override
   ConsumerState<AddPropertyScreen> createState() => _AddPropertyScreenState();
@@ -314,9 +317,15 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
         'metadata': metadataMap,
       };
 
-      const String defaultOwnerId = 'guest_advertiser';
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) {
+        throw Exception('يجب تسجيل الدخول قبل إضافة عقار');
+      }
+      if (widget.companyId != null) {
+        propertyData['company_id'] = widget.companyId;
+      }
       final newProperty =
-          PropertyModel.fromPropertyData(propertyData, defaultOwnerId);
+          PropertyModel.fromPropertyData(propertyData, currentUserId);
 
       if (!mounted) return;
 
