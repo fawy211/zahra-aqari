@@ -123,6 +123,7 @@ class PropertyModel {
       images: data['images'] != null ? List<String>.from(data['images']) : [],
       video: data['video']?.toString(),
       ownerId: currentUserId,
+      companyId: data['company_id']?.toString() ?? data['companyId']?.toString(),
       isFeatured: parseBool(data['is_featured']),
       metadata: {
         ..._mergeMetadata(data),
