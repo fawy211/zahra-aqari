@@ -175,16 +175,16 @@ class ChatListScreen extends StatelessWidget {
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4.0),
-                    child: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: supabase
+                    child: StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: supabase
                           .from('messages')
-                          .select('content, created_at')
+                          .stream(primaryKey: ['id'])
                           .eq('chat_id', chatId)
-                          .order('created_at', ascending: false)
-                          .limit(1),
+                          .order('created_at', ascending: false),
                       builder: (context, messageSnapshot) {
-                        final latestMessage = messageSnapshot.data?.isNotEmpty == true
-                            ? messageSnapshot.data!.first['content']?.toString()
+                        final messages = messageSnapshot.data ?? [];
+                        final latestMessage = messages.isNotEmpty
+                            ? messages.first['content']?.toString()
                             : null;
                         final preview = messageSnapshot.hasError
                             ? 'تعذر تحميل آخر رسالة'
