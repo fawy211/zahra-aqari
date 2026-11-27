@@ -154,7 +154,9 @@ class _PropertyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currencyFormat =
         NumberFormat.currency(locale: 'ar_EG', symbol: 'ج.م');
-    final String imageUrl = property.metadata['imageUrl'] ?? '';
+    final String imageUrl = property.images.isNotEmpty
+        ? property.images.first
+        : (property.metadata['imageUrl']?.toString() ?? '');
     final bool isFeatured = property.isFeatured;
 
     return Card(
