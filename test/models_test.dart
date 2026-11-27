@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:aqari_app/models/Office_Model.dart';
+import 'package:aqari_app/models/property_models.dart';
 import 'package:aqari_app/models/subscription_plan.dart';
 
 void main() {
@@ -43,6 +44,47 @@ void main() {
       expect(metadata['is_verified'], isTrue);
       expect(data.containsKey('owner_id'), isFalse);
       expect(data.containsKey('company_id'), isFalse);
+    });
+  });
+
+  group('PropertyModel', () {
+    test('keeps company ownership metadata without adding a database column', () {
+      final property = PropertyModel(
+        title: 'شقة للاختبار',
+        description: 'وصف',
+        categoryCode: 'residential',
+        type: 'شقة',
+        finishing: 'كامل',
+        price: 1500000,
+        area: 120,
+        gov: 'الجيزة',
+        city: 'الهرم',
+        street: 'شارع تجريبي',
+        advertiserType: 'شركة',
+        phone: '01000000000',
+        images: const [],
+        ownerId: 'owner-1',
+        companyId: 'company-1',
+        metadata: const {'rooms': '3'},
+      );
+
+      final data = property.toMap();
+      expect(data['owner_id'], 'owner-1');
+      expect(data.containsKey('company_id'), isFalse);
+      expect(data['metadata']['company_id'], 'company-1');
+      expect(data['metadata']['rooms'], '3');
+    });
+
+    test('reads company ownership from metadata', () {
+      final property = PropertyModel.fromMap({
+        'id': 'property-1',
+        'title': 'شقة',
+        'owner_id': 'owner-1',
+        'metadata': {'company_id': 'company-1'},
+      });
+
+      expect(property.companyId, 'company-1');
+      expect(property.ownerId, 'owner-1');
     });
   });
 
