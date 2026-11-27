@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/features/property/screens/add_property_screen.dart';
 import 'package:aqari_app/views/add_delegate_screen.dart';
+import 'package:aqari_app/views/chat_list_screen.dart';
+import 'package:aqari_app/views/subscription_screen.dart';
 
 class CompanyAdminDashboard extends StatelessWidget {
   final String companyId;
@@ -68,21 +70,52 @@ class CompanyAdminDashboard extends StatelessWidget {
                   "الرسائل",
                   Icons.chat_bubble_rounded,
                   Colors.orange,
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChatListScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuGridItem(
                   context,
                   "إحصائيات",
                   Icons.bar_chart_rounded,
                   Colors.purple,
-                  () {},
+                  () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('إحصائيات الشركة'),
+                        content: const Text(
+                          'ملخص العقارات وأعضاء الفريق ظاهر أعلى لوحة التحكم. '
+                          'التقارير التفصيلية ستتوفر بعد استكمال وحدة الإحصائيات.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('حسناً'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuGridItem(
                   context,
                   "الاشتراك",
                   Icons.payment_rounded,
                   Colors.green,
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SubscriptionScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -165,7 +198,6 @@ class CompanyAdminDashboard extends StatelessWidget {
         children: [
           _statItem(
               "عقارات", propertiesCount.toString(), const Color(0xFF003366)),
-          _statItem("رسائل", "0", Colors.orange),
           _statItem("أعضاء الفريق", delegatesCount.toString(), Colors.teal),
         ],
       ),
