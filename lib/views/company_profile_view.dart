@@ -293,7 +293,7 @@ class CompanyProfileView extends StatelessWidget {
           .select('id')
           .eq('user1_id', firstUserId)
           .eq('user2_id', secondUserId)
-          .eq('property_id', null)
+          .isFilter('property_id', null)
           .maybeSingle();
 
       if (chat == null) {
