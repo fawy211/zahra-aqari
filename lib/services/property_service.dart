@@ -148,7 +148,9 @@ class PropertyService {
         final file = File(path);
         final fileName =
             '${DateTime.now().microsecondsSinceEpoch}_${file.path.split('/').last}';
-        final storagePath = 'properties/$fileName';
+        // Keep uploads under the same owner/images structure used by the
+        // property provider and the safe media-cleanup routine.
+        final storagePath = '$userId/images/$fileName';
 
         await _supabase.storage
             .from('property_images')
