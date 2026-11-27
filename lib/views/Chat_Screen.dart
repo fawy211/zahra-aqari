@@ -21,11 +21,17 @@ class _ChatScreenState extends State<ChatScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
   late final User? currentUser;
   bool _isSending = false;
+  late final Stream<List<Map<String, dynamic>>> _messagesStream;
 
   @override
   void initState() {
     super.initState();
     currentUser = _supabase.auth.currentUser;
+    _messagesStream = _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('chat_id', widget.chatId)
+        .order('created_at', ascending: false);
   }
 
   @override
@@ -67,11 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               // في Supabase، نستخدم الـ stream لجلب الرسائل الخاصة بالمحادثة وترتيبها تنازلياً
-              stream: _supabase
-                  .from('messages')
-                  .stream(primaryKey: ['id'])
-                  .eq('chat_id', widget.chatId)
-                  .order('created_at', ascending: false),
+              stream: _messagesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
