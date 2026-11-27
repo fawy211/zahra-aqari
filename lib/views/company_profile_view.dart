@@ -112,8 +112,10 @@ class CompanyProfileView extends StatelessWidget {
                     final propertyId = data['id']?.toString() ?? '';
                     final property =
                         PropertyModel.fromMap(data, id: propertyId);
-                    final imageUrl =
-                        (data['imageUrl'] ?? data['image'] ?? '').toString();
+                    final rawImages = data['images'];
+                    final imageUrl = rawImages is List && rawImages.isNotEmpty
+                        ? rawImages.first.toString()
+                        : (data['imageUrl'] ?? data['image'] ?? '').toString();
                     return _buildPropertyCard(context, property, imageUrl);
                   },
                 );
