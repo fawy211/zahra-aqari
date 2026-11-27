@@ -4,11 +4,23 @@ import 'package:intl/intl.dart';
 import '../services/subscription_service.dart';
 import '../models/subscription_plan.dart';
 
-class SubscriptionScreen extends StatelessWidget {
+class SubscriptionScreen extends StatefulWidget {
+  const SubscriptionScreen({super.key});
+
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
   final SubscriptionService _subService = SubscriptionService();
   final SupabaseClient _supabase = Supabase.instance.client;
+  late final Future<List<SubscriptionPlan>> _plansFuture;
 
-  SubscriptionScreen({super.key});
+  @override
+  void initState() {
+    super.initState();
+    _plansFuture = _subService.fetchPlans();
+  }
 
   // اعرض الحدود الفعلية المخزنة في تعريف الباقة حتى لا تختلف المميزات
   // الظاهرة للمستخدم عن الحدود التي يعتمد عليها التطبيق.
@@ -25,9 +37,9 @@ class SubscriptionScreen extends StatelessWidget {
     ];
   }
 
-  Future<void> _handleSubscription(BuildContext context, dynamic plan) async {
+  Future<void> _handleSubscription(BuildContext context, SubscriptionPlan plan) async {
     // لا نفعّل باقة مدفوعة من العميل قبل ربط بوابة دفع والتحقق server-side.
-    if ((plan.price as num) > 0) {
+    if (plan.price > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
@@ -123,15 +135,34 @@ class SubscriptionScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _subService.availablePlans.length,
-        itemBuilder: (context, index) {
-          final plan = _subService.availablePlans[index];
-          final bool isFree = plan.price == 0;
-          final List<String> planFeatures = _getFeaturesForPlan(plan);
+      body: FutureBuilder<List<SubscriptionPlan>>(
+        future: _plansFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF003366)),
+            );
+          }
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text('تعذر تحميل الباقات حالياً. حاول مرة أخرى لاحقاً.'),
+            );
+          }
 
-          return Container(
+          final plans = snapshot.data ?? _subService.availablePlans;
+          if (plans.isEmpty) {
+            return const Center(child: Text('لا توجد باقات متاحة حالياً'));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: plans.length,
+            itemBuilder: (context, index) {
+              final plan = plans[index];
+              final bool isFree = plan.price == 0;
+              final List<String> planFeatures = _getFeaturesForPlan(plan);
+
+              return Container(
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -271,6 +302,8 @@ class SubscriptionScreen extends StatelessWidget {
                 ],
               ),
             ),
+              );
+            },
           );
         },
       ),
