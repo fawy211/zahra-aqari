@@ -59,6 +59,7 @@ class CompanyProfileView extends StatelessWidget {
                   .from('properties')
                   .stream(primaryKey: ['id'])
                   .eq('owner_id', ownerId)
+                  .eq('metadata->>company_id', companyId)
                   .eq('status', 'verified'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
