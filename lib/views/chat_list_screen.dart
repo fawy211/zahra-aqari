@@ -175,14 +175,32 @@ class ChatListScreen extends StatelessWidget {
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      lastMessage,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: FutureBuilder<List<Map<String, dynamic>>>(
+                      future: supabase
+                          .from('messages')
+                          .select('content, created_at')
+                          .eq('chat_id', chatId)
+                          .order('created_at', ascending: false)
+                          .limit(1),
+                      builder: (context, messageSnapshot) {
+                        final latestMessage = messageSnapshot.data?.isNotEmpty == true
+                            ? messageSnapshot.data!.first['content']?.toString()
+                            : null;
+                        final preview = messageSnapshot.hasError
+                            ? 'تعذر تحميل آخر رسالة'
+                            : (latestMessage == null || latestMessage.isEmpty
+                                ? lastMessage
+                                : latestMessage);
+                        return Text(
+                          preview,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
                     ),
                   ),
                   trailing: Column(
