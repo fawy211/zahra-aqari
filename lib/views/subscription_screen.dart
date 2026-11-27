@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import '../services/subscription_service.dart';
+import '../models/subscription_plan.dart';
 
 class SubscriptionScreen extends StatelessWidget {
   final SubscriptionService _subService = SubscriptionService();
@@ -9,39 +10,19 @@ class SubscriptionScreen extends StatelessWidget {
 
   SubscriptionScreen({super.key});
 
-  // دالة لإرجاع مميزات كل باقة بناءً على اسمها بدقة (تدعم المسميات الجديدة والقديمة)
-  List<String> _getFeaturesForPlan(String planName) {
-    if (planName.contains("المجانية") ||
-        planName.contains("المشتركين") ||
-        planName.contains("مجانية")) {
-      return [
-        "إضافة 3 إعلانات شهرياً",
-        "فيديو خاص بكل إعلان لا تتجاوز مدته 60 ثانية",
-      ];
-    } else if (planName.contains("العامة") || planName.contains("عامة")) {
-      return [
-        "إضافة 10 إعلانات شهرياً",
-        "فيديو خاص بكل إعلان لا تتجاوز مدته 180 ثانية",
-        "إمكانية زيادة عدد الإعلانات بتكلفة 10 ج.م لكل اعلان",
-      ];
-    } else if (planName.contains("المميزة") || planName.contains("مكاتب")) {
-      return [
-        "إضافة 25 اعلان شهريا",
-        "فيديو خاص بكل اعلان لا تتجاوز مدته 180 ثانية",
-        "إمكانية زيادة عدد الإعلانات بتكلفة 10 ج.م لكل اعلان",
-      ];
-    } else if (planName.contains("الذهبية") || planName.contains("شركات")) {
-      return [
-        "اضافة عدد غير محدد من الاعلانات",
-        "تميز عدد 5 اعلانات من اختيار العميل",
-        "فيديو خاص بكل اعلان لا تتجاوز مدته 300 ثانية",
-      ];
-    } else {
-      return [
-        "إضافة إعلانات عقارية مخصصة",
-        "عرض تفاصيل التواصل الكاملة",
-      ];
-    }
+  // اعرض الحدود الفعلية المخزنة في تعريف الباقة حتى لا تختلف المميزات
+  // الظاهرة للمستخدم عن الحدود التي يعتمد عليها التطبيق.
+  List<String> _getFeaturesForPlan(SubscriptionPlan plan) {
+    final adsLimit = plan.maxAdsPerMonth;
+    final videoMinutes = (plan.maxVideoDuration / 60).floor();
+    return [
+      adsLimit <= 0
+          ? "عدد الإعلانات غير محدود"
+          : "إضافة حتى $adsLimit إعلانات شهرياً",
+      videoMinutes <= 0
+          ? "لا يتوفر رفع فيديو لهذه الباقة"
+          : "فيديو لكل إعلان بمدة تصل إلى $videoMinutes دقيقة",
+    ];
   }
 
   Future<void> _handleSubscription(BuildContext context, dynamic plan) async {
@@ -148,7 +129,7 @@ class SubscriptionScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final plan = _subService.availablePlans[index];
           final bool isFree = plan.price == 0;
-          final List<String> planFeatures = _getFeaturesForPlan(plan.name);
+          final List<String> planFeatures = _getFeaturesForPlan(plan);
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
