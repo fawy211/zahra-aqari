@@ -50,7 +50,7 @@ class ChatListScreen extends StatelessWidget {
         // في Supabase، يتم استخدام الـ stream للمتابعة الحية للجدول وترتيبه تنازلياً
         stream: supabase
             .from('chats')
-            .stream(primaryKey: ['id']).order('updatedAt', ascending: false),
+            .stream(primaryKey: ['id']).order('updated_at', ascending: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -74,11 +74,8 @@ class ChatListScreen extends StatelessWidget {
           // (تأكد أن عمود participants في قاعدة البيانات مخزن كـ Array أو JSON يحتوي على IDs المستخدمين)
           final allChats = snapshot.data ?? [];
           final docs = allChats.where((chat) {
-            final participants = chat['participants'];
-            if (participants is List) {
-              return participants.contains(currentUser.id);
-            }
-            return false;
+            return chat['user1_id'] == currentUser.id ||
+                chat['user2_id'] == currentUser.id;
           }).toList();
 
           if (docs.isEmpty) {
@@ -108,13 +105,13 @@ class ChatListScreen extends StatelessWidget {
               final chatData = docs[index];
               final String chatId = chatData['id']?.toString() ?? '';
 
-              String chatName = chatData['otherUserName'] ?? "مستخدم";
+              String chatName = "محادثة";
               String lastMessage =
-                  chatData['lastMessage'] ?? "ابدأ المحادثة الآن";
+                  "اضغط لعرض الرسائل";
 
               // معالجة وقت الرسالة في Supabase (عادة ما يُخزن كـ String بنظام ISO8601 أو Timestamp)
               String time = "";
-              var rawTime = chatData['updatedAt'];
+              var rawTime = chatData['updated_at'];
               if (rawTime != null) {
                 DateTime? messageDate;
                 if (rawTime is String) {
