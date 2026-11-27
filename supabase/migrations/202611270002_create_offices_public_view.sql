@@ -8,8 +8,6 @@ SELECT
     location,
     metadata ->> 'contact_phone' AS phone,
     metadata ->> 'logo_url' AS logo,
-    COALESCE((metadata ->> 'properties_count')::integer, 0) AS properties_count,
-    COALESCE((metadata ->> 'is_verified')::boolean, false) AS is_verified,
     created_at
 FROM public.offices;
 
