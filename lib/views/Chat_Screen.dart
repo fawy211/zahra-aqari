@@ -289,7 +289,6 @@ class _ChatScreenState extends State<ChatScreen> {
       try {
         await _supabase.from('chats').update({
           'updated_at': currentTime,
-          'updated_at': currentTime,
         }).eq('id', widget.chatId);
       } catch (e) {
         if (mounted) {
