@@ -58,7 +58,7 @@ class CompanyAdminDashboard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const AddPropertyScreen(),
+                        builder: (_) => AddPropertyScreen(companyId: companyId),
                       ),
                     );
                   },
