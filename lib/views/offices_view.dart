@@ -54,10 +54,10 @@ class OfficesView extends StatelessWidget {
         backgroundColor: const Color(0xFF003366),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: Supabase.instance.client
-            .from('offices')
-            .stream(primaryKey: ['id'])
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: Supabase.instance.client
+            .from('offices_public')
+            .select('id, name, location, phone, logo, created_at')
             .order('name', ascending: true),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
