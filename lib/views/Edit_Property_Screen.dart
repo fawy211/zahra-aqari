@@ -37,8 +37,13 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
             ? widget.property.finishing
             : (widget.property.metadata['finishing']?.toString() ?? ''));
 
+    final floorValue = widget.property.metadata['floor'] ??
+        widget.property.metadata['floors'];
     _floorController = TextEditingController(
-        text: widget.property.metadata['floor']?.toString() ?? '');
+      text: floorValue is List
+          ? floorValue.map((value) => value.toString()).join(', ')
+          : (floorValue?.toString() ?? ''),
+    );
 
     _roomsController = TextEditingController(
         text: widget.property.metadata['rooms']?.toString() ?? '');
@@ -78,6 +83,10 @@ class _EditPropertyScreenState extends State<EditPropertyScreen> {
       final floorValue = _floorController.text.trim();
       final roomsValue = _roomsController.text.trim();
       final finishingValue = _finishingController.text.trim();
+      // الإصدارات السابقة كانت تحفظ الطوابق بصيغة floors كقائمة.
+      // نعتمد floor كمفتاح موحد بعد التعديل حتى لا تظهر قيم قديمة متعارضة.
+      updatedMetadata.remove('floors');
+      updatedMetadata.remove('الطوابق');
       updatedMetadata['floor'] = floorValue;
       updatedMetadata['rooms'] = roomsValue;
       updatedMetadata['finishing'] = finishingValue;
