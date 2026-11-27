@@ -508,9 +508,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PageStorageKey(title) == null
-        ? const SizedBox.shrink()
-        : Padding(
+    return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               title,
