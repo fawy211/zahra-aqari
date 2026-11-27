@@ -115,7 +115,7 @@ class ChatListScreen extends StatelessWidget {
               if (rawTime != null) {
                 DateTime? messageDate;
                 if (rawTime is String) {
-                  messageDate = DateTime.tryParse(rawTime);
+                  messageDate = DateTime.tryParse(rawTime)?.toLocal();
                 } else if (rawTime is DateTime) {
                   messageDate = rawTime;
                 }
