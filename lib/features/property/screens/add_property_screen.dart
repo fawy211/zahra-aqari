@@ -276,7 +276,7 @@ class _AddPropertyScreenState extends ConsumerState<AddPropertyScreen> {
         }
       };
 
-      final propertyData = {
+      final Map<String, dynamic> propertyData = {
         'title': _titleController.text.trim().isEmpty
             ? 'عقار جديد'
             : _titleController.text.trim(),
