@@ -5,8 +5,9 @@ import 'package:aqari_app/models/Company_Model.dart';
 class CompanyService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Public company directory. The view intentionally excludes contact details.
-  /// Views are not streamed through Supabase Realtime, so refresh periodically.
+  String? get currentUserId => _supabase.auth.currentUser?.id;
+
+  /// Public company directory. Private contact details are not exposed.
   Stream<List<CompanyModel>> getCompanies() async* {
     Future<List<CompanyModel>> loadCompanies() async {
       try {
@@ -29,7 +30,6 @@ class CompanyService {
         .asyncMap((_) => loadCompanies());
   }
 
-  /// Public company details; private contact data is never selected here.
   Future<CompanyModel?> getCompanyById(String companyId) async {
     try {
       final response = await _supabase
