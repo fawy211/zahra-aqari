@@ -1,37 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/Office_Model.dart';
 
 class OfficesView extends StatelessWidget {
   const OfficesView({super.key});
 
-  // دالة احترافية للاتصال المباشر مع التحقق من صحة الرقم
   Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
     if (phoneNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("رقم الهاتف غير متوفر لهذا المكتب"),
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
     }
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+
+    final launchUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(launchUri)) {
       await launchUrl(launchUri);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("تعذر إجراء المكالمة"),
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("تعذر إجراء المكالمة"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
@@ -53,26 +54,30 @@ class OfficesView extends StatelessWidget {
         backgroundColor: const Color(0xFF003366),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      // استخدام StreamBuilder للاستماع الفوري للبيانات من جدول offices في Supabase وترتيبها حسب الاسم
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: Supabase.instance.client
             .from('offices')
-            .stream(primaryKey: ['id']).order('name', ascending: true),
+            .stream(primaryKey: ['id'])
+            .order('name', ascending: true),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFF003366)),
             );
           }
+
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 48, color: Colors.redAccent),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: Colors.redAccent,
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       "حدث خطأ في تحميل البيانات: ${snapshot.error}",
@@ -85,12 +90,14 @@ class OfficesView extends StatelessWidget {
             );
           }
 
-          final docs = snapshot.data ?? [];
+          final offices = (snapshot.data ?? [])
+              .map((row) => OfficeModel.fromMap(row))
+              .toList();
 
-          if (docs.isEmpty) {
+          if (offices.isEmpty) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -109,17 +116,12 @@ class OfficesView extends StatelessWidget {
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: docs.length,
+            itemCount: offices.length,
             itemBuilder: (context, index) {
-              final data = docs[index];
-              final phone = data['phone']?.toString() ?? '';
-
+              final office = offices[index];
               return _OfficeCard(
-                name: data['name']?.toString() ?? 'مكتب عقاري',
-                location: data['location']?.toString() ?? 'غير محدد',
-                phone: phone,
-                logoUrl: data['logoUrl']?.toString() ?? '',
-                onCall: () => _makePhoneCall(context, phone),
+                office: office,
+                onCall: () => _makePhoneCall(context, office.phone),
               );
             },
           );
@@ -129,21 +131,16 @@ class OfficesView extends StatelessWidget {
   }
 }
 
-// الكلاس الخاص بتصميم الكارت بمعايير عالية الجودة وتوافق مع Material 3
 class _OfficeCard extends StatelessWidget {
-  final String name, location, phone, logoUrl;
+  final OfficeModel office;
   final VoidCallback onCall;
 
-  const _OfficeCard({
-    required this.name,
-    required this.location,
-    required this.phone,
-    required this.logoUrl,
-    required this.onCall,
-  });
+  const _OfficeCard({required this.office, required this.onCall});
 
   @override
   Widget build(BuildContext context) {
+    final logoUrl = office.logo ?? '';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -153,10 +150,9 @@ class _OfficeCard extends StatelessWidget {
       elevation: 0,
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // الشعار بتصميم دائري فاخر وحماية للصورة
             Container(
               width: 60,
               height: 60,
@@ -177,14 +173,12 @@ class _OfficeCard extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 14),
-
-            // المعلومات الأساسية
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    office.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -199,7 +193,7 @@ class _OfficeCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          location,
+                          office.address ?? 'غير محدد',
                           style: TextStyle(
                               color: Colors.grey.shade600, fontSize: 13),
                           maxLines: 1,
@@ -212,8 +206,6 @@ class _OfficeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-
-            // زر الاتصال المباشر بتصميم أنيق
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF003366).withOpacity(0.08),
