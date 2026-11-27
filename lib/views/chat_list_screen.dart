@@ -3,8 +3,38 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:aqari_app/views/Chat_Screen.dart';
 
-class ChatListScreen extends StatelessWidget {
+class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
+
+  @override
+  State<ChatListScreen> createState() => _ChatListScreenState();
+}
+
+class _ChatListScreenState extends State<ChatListScreen> {
+  final Map<String, Future<Map<String, dynamic>?>> _profileRequests = {};
+  final Map<String, Stream<List<Map<String, dynamic>>>> _messageStreams = {};
+
+  Future<Map<String, dynamic>?> _profileFor(String userId) {
+    return _profileRequests.putIfAbsent(
+      userId,
+      () => Supabase.instance.client
+          .from('profiles_public')
+          .select('name')
+          .eq('id', userId)
+          .maybeSingle(),
+    );
+  }
+
+  Stream<List<Map<String, dynamic>>> _messagesFor(String chatId) {
+    return _messageStreams.putIfAbsent(
+      chatId,
+      () => Supabase.instance.client
+          .from('messages')
+          .stream(primaryKey: ['id'])
+          .eq('chat_id', chatId)
+          .order('created_at', ascending: false),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,11 +167,7 @@ class ChatListScreen extends StatelessWidget {
               }
 
               return FutureBuilder<Map<String, dynamic>?>(
-                future: supabase
-                    .from('profiles_public')
-                    .select('name')
-                    .eq('id', otherUserId)
-                    .maybeSingle(),
+                future: _profileFor(otherUserId),
                 builder: (context, profileSnapshot) {
                   final rawName = profileSnapshot.data?['name']?.toString();
                   final chatName = rawName != null && rawName.trim().isNotEmpty
@@ -194,11 +220,7 @@ class ChatListScreen extends StatelessWidget {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: StreamBuilder<List<Map<String, dynamic>>>(
-                          stream: supabase
-                              .from('messages')
-                              .stream(primaryKey: ['id'])
-                              .eq('chat_id', chatId)
-                              .order('created_at', ascending: false),
+                          stream: _messagesFor(chatId),
                           builder: (context, messageSnapshot) {
                             final messages = messageSnapshot.data ?? [];
                             final latest = messages.isNotEmpty
