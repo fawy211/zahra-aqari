@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aqari_app/models/Company_Model.dart';
 
@@ -10,19 +9,14 @@ class CompanyService {
   /// Public company directory. Private contact details are not exposed.
   Stream<List<CompanyModel>> getCompanies() async* {
     Future<List<CompanyModel>> loadCompanies() async {
-      try {
-        final rows = await _supabase
-            .from('companies_public')
-            .select()
-            .order('created_at', ascending: false);
+      final rows = await _supabase
+          .from('companies_public')
+          .select()
+          .order('created_at', ascending: false);
 
-        return rows
-            .map<CompanyModel>((row) => CompanyModel.fromMap(row))
-            .toList();
-      } catch (e) {
-        debugPrint('خطأ في جلب قائمة الشركات العامة: $e');
-        return <CompanyModel>[];
-      }
+      return rows
+          .map<CompanyModel>((row) => CompanyModel.fromMap(row))
+          .toList();
     }
 
     yield await loadCompanies();
