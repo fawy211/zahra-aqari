@@ -71,7 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   .from('messages')
                   .stream(primaryKey: ['id'])
                   .eq('chat_id', widget.chatId)
-                  .order('timestamp', ascending: false),
+                  .order('created_at', ascending: false),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -122,12 +122,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
                     var msg = docs[index];
-                    bool isMe = msg['senderId'] == currentUser?.id;
-                    String text = msg['text'] ?? '';
+                    bool isMe = msg['sender_id'] == currentUser?.id;
+                    String text = msg['content'] ?? '';
 
                     // معالجة التوقيت في Supabase (سواء كان String أو DateTime)
                     String timeStr = '';
-                    var rawTime = msg['timestamp'];
+                    var rawTime = msg['created_at'];
                     if (rawTime != null) {
                       DateTime? messageDate;
                       if (rawTime is String) {
@@ -275,9 +275,9 @@ class _ChatScreenState extends State<ChatScreen> {
       // لا نمسح النص إلا بعد تأكيد إدراج الرسالة بنجاح.
       await _supabase.from('messages').insert({
         'chat_id': widget.chatId,
-        'text': text,
-        'senderId': currentUser!.id,
-        'timestamp': currentTime,
+        'content': text,
+        'sender_id': currentUser!.id,
+        'created_at': currentTime,
       });
 
       // لا نمسح أي نص جديد كتبه المستخدم أثناء انتظار الطلب.
@@ -288,8 +288,8 @@ class _ChatScreenState extends State<ChatScreen> {
       // تحديث بيانات قائمة المحادثات خطوة منفصلة عن إدراج الرسالة.
       try {
         await _supabase.from('chats').update({
-          'lastMessage': text,
-          'updatedAt': currentTime,
+          'updated_at': currentTime,
+          'updated_at': currentTime,
         }).eq('id', widget.chatId);
       } catch (e) {
         if (mounted) {
