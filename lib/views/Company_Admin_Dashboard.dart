@@ -95,11 +95,17 @@ class CompanyAdminDashboard extends StatelessWidget {
   Widget _buildQuickStatsSection() {
     final supabase = Supabase.instance.client;
 
+    final ownerId = supabase.auth.currentUser?.id;
+
+    if (ownerId == null) {
+      return _statsContainer(0, 0);
+    }
+
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase
           .from('properties')
           .stream(primaryKey: ['id'])
-          .eq('owner_id', companyId),
+          .eq('owner_id', ownerId),
       builder: (context, propertySnapshot) {
         final propertiesCount =
             propertySnapshot.hasData ? propertySnapshot.data!.length : 0;
