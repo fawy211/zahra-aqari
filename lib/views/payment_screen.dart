@@ -1,88 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-class PaymentScreen extends StatefulWidget {
+/// Payment and featured-listing activation remain disabled until a verified
+/// server-side payment flow is connected.
+class PaymentScreen extends StatelessWidget {
   final String propertyId;
 
   const PaymentScreen({super.key, required this.propertyId});
-
-  @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
-}
-
-class _PaymentScreenState extends State<PaymentScreen> {
-  bool _isProcessing = false;
-
-  Future<void> _confirmAndProcess(
-      double price, int days, String packageTitle) async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          "تأكيد الاشتراك",
-          style:
-              TextStyle(color: Color(0xFF003366), fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          price == 0
-              ? "هل أنت متأكد من الاشتراك في $packageTitle؟"
-              : "هل أنت متأكد من الاشتراك في $packageTitle بقيمة ${NumberFormat.currency(locale: 'ar_EG', symbol: 'ج.م').format(price)}؟",
-          style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("إلغاء", style: TextStyle(color: Colors.grey.shade600)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF003366),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("تأكيد الاشتراك",
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await _processPayment(price, days, packageTitle);
-    }
-  }
-
-  Future<void> _processPayment(
-      double price, int days, String packageTitle) async {
-    // لا توجد بوابة دفع أو تفعيل مجاني موثوق لهذا المسار حتى الآن.
-    // لا نسجل completed ولا نغير بيانات العقار من تطبيق العميل.
-    if (price > 0) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-                "الدفع الإلكتروني غير مربوط حالياً؛ لم يتم تفعيل الباقة أو خصم أي مبلغ."),
-            backgroundColor: Colors.orange.shade800,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              "الخدمة المجانية لا تمنح تمييزاً للعقار. لم يتم إنشاء عملية دفع أو تغيير بيانات الإعلان."),
-          backgroundColor: Colors.blueGrey.shade700,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +13,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
-          "الاشتراك فى منصة زهره العقارية",
+          'تمييز الإعلان',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -102,181 +25,60 @@ class _PaymentScreenState extends State<PaymentScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isProcessing
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF003366)),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "اختر الباقة المناسبة لاحتياجاتك:",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF003366),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 1. الخدمة المجانية للمشتركين
-                  _buildPackageCard(
-                    title: "الخدمة المجانية للمشتركين",
-                    price: 0.0,
-                    days: 30,
-                    icon: Icons.card_giftcard_rounded,
-                    features: [
-                      "إضافة 3 إعلانات شهرياً",
-                      "فيديو خاص بكل إعلان لا تتجاوز مدته 60 ثانية",
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 2. الباقة العامة
-                  _buildPackageCard(
-                    title: "الباقة العامة",
-                    price: 100.0,
-                    days: 30,
-                    icon: Icons.star_border_rounded,
-                    features: [
-                      "إضافة 10 إعلانات شهرياً",
-                      "فيديو خاص بكل إعلان لا تتجاوز مدته 180 ثانية",
-                      "إمكانية زيادة عدد الإعلانات بتكلفة 10 ج.م لكل إعلان",
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 3. الباقة المميزة
-                  _buildPackageCard(
-                    title: "الباقة المميزة",
-                    price: 250.0,
-                    days: 30,
-                    icon: Icons.star_rounded,
-                    features: [
-                      "إضافة 25 إعلاناً شهرياً",
-                      "فيديو خاص بكل إعلان لا تتجاوز مدته 180 ثانية",
-                      "إمكانية زيادة عدد الإعلانات بتكلفة 10 ج.م لكل إعلان",
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 4. الباقة الذهبية
-                  _buildPackageCard(
-                    title: "الباقة الذهبية",
-                    price: 500.0,
-                    days: 30,
-                    icon: Icons.workspace_premium_rounded,
-                    features: [
-                      "إضافة عدد غير محدد من الإعلانات",
-                      "تميز عدد 5 إعلانات من اختيار العميل",
-                      "فيديو خاص بكل إعلان لا تتجاوز مدته 300 ثانية",
-                    ],
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildPackageCard({
-    required String title,
-    required double price,
-    required int days,
-    required IconData icon,
-    required List<String> features,
-  }) {
-    final NumberFormat currencyFormat =
-        NumberFormat.currency(locale: 'ar_EG', symbol: 'ج.م');
-    final bool isFree = price == 0;
-
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _confirmAndProcess(price, days, title),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 45,
-                    height: 45,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF003366).withOpacity(0.06),
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF003366).withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_outlined,
+                  size: 44,
+                  color: Color(0xFF003366),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'خدمة تمييز الإعلانات غير متاحة حالياً',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF003366),
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'سيتم إتاحة الباقات والأسعار بعد ربط وسيلة دفع آمنة والتحقق من الدفع على الخادم. لم يتم خصم أي مبلغ أو تغيير حالة إعلانك.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                  height: 1.7,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF003366),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF003366),
-                      size: 24,
-                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Color(0xFF003366),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    isFree ? "مجاناً" : "${currencyFormat.format(price)} / شهر",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isFree
-                          ? Colors.green.shade700
-                          : const Color(0xFF003366),
-                    ),
-                  ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10.0),
-                child: Divider(height: 1),
-              ),
-              ...features.map((feature) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6.0),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle,
-                            size: 16, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )),
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  isFree ? "اختر الخدمة المجانية" : "اختر الباقة",
-                  style: const TextStyle(
-                    color: Color(0xFF003366),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('العودة إلى الإعلان'),
                 ),
               ),
             ],
