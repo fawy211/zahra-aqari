@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/property_models.dart';
 import 'property_details_screen.dart';
 import 'Chat_Screen.dart';
 
 class CompanyProfileView extends StatelessWidget {
+  final String companyId;
   final String ownerId;
   final String companyName;
 
   const CompanyProfileView({
     super.key,
+    required this.companyId,
     required this.ownerId,
     required this.companyName,
   });
 
   @override
   Widget build(BuildContext context) {
-    final SupabaseClient supabase = Supabase.instance.client;
+    final supabase = Supabase.instance.client;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -25,7 +26,10 @@ class CompanyProfileView extends StatelessWidget {
         title: Text(
           companyName,
           style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         backgroundColor: const Color(0xFF003366),
         elevation: 0,
@@ -40,17 +44,17 @@ class CompanyProfileView extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                "عقارات الشركة المتاحة",
+                'عقارات الشركة المتاحة',
                 style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800]),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
               ),
             ),
           ),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              // استخدام Supabase Stream لجلب العقارات الموثقة الخاصة بالشركة
               stream: supabase
                   .from('properties')
                   .stream(primaryKey: ['id'])
@@ -59,7 +63,14 @@ class CompanyProfileView extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF003366)),
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF003366),
+                    ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text('تعذر تحميل عقارات الشركة حالياً'),
                   );
                 }
 
@@ -73,11 +84,12 @@ class CompanyProfileView extends StatelessWidget {
                             size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
                         const Text(
-                          "لا توجد عقارات متاحة حالياً",
+                          'لا توجد عقارات متاحة حالياً',
                           style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500),
+                            fontSize: 15,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -87,7 +99,8 @@ class CompanyProfileView extends StatelessWidget {
                 return GridView.builder(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio: 0.72,
                     crossAxisSpacing: 12,
@@ -112,118 +125,68 @@ class CompanyProfileView extends StatelessWidget {
     );
   }
 
-  // رأس الملف الشخصي للشركة مع جلب رقم الهاتف من جدول users في Supabase
   Widget _buildProfileHeader(BuildContext context) {
-    final SupabaseClient supabase = Supabase.instance.client;
-
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: supabase.from('users').select().eq('id', ownerId).maybeSingle(),
-      builder: (context, snapshot) {
-        final userData = snapshot.data;
-        final phone = userData?['phone'] ?? userData?['phoneNumber'] ?? '';
-
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 36,
+            backgroundColor: const Color(0xFF003366).withOpacity(0.1),
+            child: Text(
+              companyName.isNotEmpty ? companyName[0].toUpperCase() : 'C',
+              style: const TextStyle(
+                color: Color(0xFF003366),
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-            border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+            ),
           ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 36,
-                backgroundColor: const Color(0xFF003366).withOpacity(0.1),
-                child: Text(
-                  companyName.isNotEmpty ? companyName[0].toUpperCase() : 'C',
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  companyName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF003366),
-                    fontSize: 26,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Color(0xFF003366),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      companyName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF003366),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF003366),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        // زر الاتصال الهاتفي
-                        if (phone.toString().isNotEmpty) ...[
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                              minimumSize: const Size(0, 32),
-                            ),
-                            onPressed: () async {
-                              final Uri launchUri =
-                                  Uri(scheme: 'tel', path: phone.toString());
-                              if (await canLaunchUrl(launchUri)) {
-                                await launchUrl(launchUri);
-                              }
-                            },
-                            icon: const Icon(Icons.phone_rounded, size: 16),
-                            label: const Text("اتصال",
-                                style: TextStyle(fontSize: 12)),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        // زر المراسلة داخل التطبيق
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF003366),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                            minimumSize: const Size(0, 32),
-                          ),
-                          onPressed: () => _openChat(context),
-                          icon: const Icon(Icons.chat_bubble_outline_rounded,
-                              size: 16),
-                          label: const Text("مراسلة",
-                              style: TextStyle(fontSize: 12)),
-                        ),
-                      ],
-                    )
-                  ],
+                    minimumSize: const Size(0, 32),
+                  ),
+                  onPressed: () => _openChat(context),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                  label: const Text('مراسلة',
+                      style: TextStyle(fontSize: 12)),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  // تصميم كارت العقار ضمن شبكة العرض (Grid)
   Widget _buildPropertyCard(
       BuildContext context, PropertyModel property, String imageUrl) {
     return Container(
@@ -243,7 +206,9 @@ class CompanyProfileView extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => DetailsScreen(property: property)),
+          MaterialPageRoute(
+            builder: (_) => DetailsScreen(property: property),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,13 +226,14 @@ class CompanyProfileView extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.grey[200],
                     child: const Center(
-                        child: Icon(Icons.broken_image, color: Colors.grey)),
+                      child: Icon(Icons.broken_image, color: Colors.grey),
+                    ),
                   ),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -283,7 +249,7 @@ class CompanyProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "${property.price} ج.م",
+                    '${property.price} ج.م',
                     style: const TextStyle(
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
@@ -299,39 +265,71 @@ class CompanyProfileView extends StatelessWidget {
     );
   }
 
-  // فتح أو إنشاء غرفة محادثة مباشرة مع الشركة باستخدام Supabase
   Future<void> _openChat(BuildContext context) async {
-    final SupabaseClient supabase = Supabase.instance.client;
+    final supabase = Supabase.instance.client;
     final currentUserId = supabase.auth.currentUser?.id;
-    if (currentUserId == null || currentUserId == ownerId) return;
 
-    List<String> ids = [currentUserId, ownerId];
-    ids.sort();
-    String chatId = "${ids[0]}_${ids[1]}";
-
-    // التحقق من وجود المحادثة مسبقاً أو إنشائها
-    final existingChat =
-        await supabase.from('chats').select().eq('id', chatId).maybeSingle();
-
-    if (existingChat == null) {
-      await supabase.from('chats').insert({
-        'id': chatId,
-        'participants': [currentUserId, ownerId],
-        'lastMessage': '',
-        'updatedAt': DateTime.now().toIso8601String(),
-      });
+    if (currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تسجيل الدخول أولاً')),
+      );
+      return;
+    }
+    if (currentUserId == ownerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكنك مراسلة حسابك الشخصي')),
+      );
+      return;
     }
 
-    if (!context.mounted) return;
+    try {
+      final firstUserId =
+          currentUserId.compareTo(ownerId) < 0 ? currentUserId : ownerId;
+      final secondUserId =
+          currentUserId.compareTo(ownerId) < 0 ? ownerId : currentUserId;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          chatId: chatId,
-          otherUserName: companyName,
+      var chat = await supabase
+          .from('chats')
+          .select('id')
+          .eq('user1_id', firstUserId)
+          .eq('user2_id', secondUserId)
+          .eq('property_id', null)
+          .maybeSingle();
+
+      if (chat == null) {
+        chat = await supabase
+            .from('chats')
+            .insert({
+              'user1_id': firstUserId,
+              'user2_id': secondUserId,
+            })
+            .select('id')
+            .single();
+      }
+
+      final chatId = chat['id']?.toString();
+      if (chatId == null || chatId.isEmpty) {
+        throw Exception('لم يتم إنشاء رقم المحادثة');
+      }
+      if (!context.mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatId: chatId,
+            otherUserName: companyName,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تعذر فتح المحادثة: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
