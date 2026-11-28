@@ -55,19 +55,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         throw Exception('لم يتم إنشاء الحساب. حاول مرة أخرى.');
       }
 
-      // 2. حفظ بيانات الحساب في جدول profiles الموحد.
-      // هذه هي الأعمدة الموجودة في مخطط Supabase الحالي؛ أما بيانات
-      // الشركة والهاتف فتظل في Auth metadata إلى أن نثبت أعمدتها في قاعدة
-      // البيانات، حتى لا ينجح إنشاء Auth ثم يفشل إدخال الملف الشخصي.
-      await supabase.from('profiles').upsert({
-        'id': user.id,
-        'email': _emailController.text.trim(),
-        'name': _nameController.text.trim(),
-        'user_type': _selectedRole,
-        'account_type': _selectedRole,
-        // بيانات الاشتراك والتوثيق لا يحددها العميل عند التسجيل.
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      // 2. احفظ الملف الشخصي فقط إذا كانت Supabase قد أنشأت جلسة
+      // موثقة. عند تفعيل تأكيد البريد، سينشأ الملف بعد أول تسجيل دخول.
+      if (res.session != null) {
+        await supabase.from('profiles').upsert({
+          'id': user.id,
+          'email': _emailController.text.trim(),
+          'name': _nameController.text.trim(),
+          'created_at': DateTime.now().toUtc().toIso8601String(),
+        }, onConflict: 'id');
+      }
 
       if (mounted) {
         final message = res.session == null
