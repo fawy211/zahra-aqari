@@ -62,6 +62,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           'id': user.id,
           'email': _emailController.text.trim(),
           'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'company_name': _selectedRole == 'individual'
+              ? ''
+              : _companyNameController.text.trim(),
+          'user_type': _selectedRole,
+          'account_type': _selectedRole,
           'created_at': DateTime.now().toUtc().toIso8601String(),
         }, onConflict: 'id');
       }
