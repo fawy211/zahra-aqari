@@ -58,7 +58,9 @@ class CompanyProfileView extends StatelessWidget {
               future: supabase
                   .from('properties')
                   .select()
-                  .eq('owner_id', ownerId)
+                  // A company listing may be created by its owner or an
+                  // authorized delegate; company_id is the shared link.
+                  // Public RLS still limits this query to visible listings.
                   .eq('status', 'verified')
                   .contains('metadata', {'company_id': companyId}),
               builder: (context, snapshot) {
