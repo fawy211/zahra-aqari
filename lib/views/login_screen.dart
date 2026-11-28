@@ -55,11 +55,20 @@ class _LoginScreenState extends State<LoginScreen> {
               .eq('id', signedInUser.id)
               .maybeSingle();
           if (existingProfile == null) {
+            final metadata = signedInUser.userMetadata ?? {};
+            final accountType =
+                metadata['account_type']?.toString() ??
+                metadata['user_type']?.toString() ??
+                'individual';
             await supabase.from('profiles').insert({
               'id': signedInUser.id,
               'email': signedInUser.email ?? _emailController.text.trim(),
-              'name': signedInUser.userMetadata?['name']?.toString() ??
+              'name': metadata['name']?.toString() ??
                   _nameController.text.trim(),
+              'phone': metadata['phone']?.toString() ?? '',
+              'company_name': metadata['company_name']?.toString() ?? '',
+              'user_type': accountType,
+              'account_type': accountType,
               'created_at': DateTime.now().toUtc().toIso8601String(),
             });
           }
