@@ -38,8 +38,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           '',
     );
     // جلب رابط الصورة الشخصية القديمة إن وجد
-    _currentAvatarUrl =
-        widget.userData['avatar_url'] ?? widget.userData['image'];
+    final avatarValue = (widget.userData['avatar_path'] ??
+            widget.userData['avatar_url'] ??
+            widget.userData['image'])
+        ?.toString();
+    if (avatarValue != null && avatarValue.isNotEmpty) {
+      // The profiles table stores the Storage object path, not a public URL.
+      _currentAvatarUrl = avatarValue.startsWith('http')
+          ? avatarValue
+          : Supabase.instance.client.storage
+              .from('profiles_bucket')
+              .getPublicUrl(avatarValue);
+    }
   }
 
   @override
@@ -85,7 +95,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
     String? uploadedAvatarPath;
     try {
-        String? uploadedAvatarUrl = _currentAvatarUrl;
+        String? avatarPath = widget.userData['avatar_path']?.toString();
 
         // إذا قام المستخدم باختيار صورة جديدة، نقوم برفعها لـ Supabase Storage أولاً
         if (_selectedImageFile != null) {
@@ -99,8 +109,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               .from('profiles_bucket')
               .upload(storagePath, _selectedImageFile!);
 
-          // الحصول على الرابط العام للصورة المرفوعة
-          uploadedAvatarUrl = supabase.storage
+          avatarPath = storagePath;
+          _currentAvatarUrl = supabase.storage
               .from('profiles_bucket')
               .getPublicUrl(storagePath);
         }
@@ -108,7 +118,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final Map<String, dynamic> updateData = {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
-          if (uploadedAvatarUrl != null) 'avatar_url': uploadedAvatarUrl,
+          if (avatarPath != null) 'avatar_path': avatarPath,
         };
 
         final userType = (widget.userData['user_type'] ??
