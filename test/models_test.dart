@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:aqari_app/models/Office_Model.dart';
 import 'package:aqari_app/models/property_models.dart';
 import 'package:aqari_app/models/subscription_plan.dart';
+import 'package:aqari_app/models/user_model.dart';
 
 void main() {
   group('OfficeModel', () {
@@ -103,4 +104,43 @@ void main() {
       expect(plan.maxVideoDuration, 300);
     });
   });
+
+  group('UserModel', () {
+    test('round-trips profile contact and avatar fields', () {
+      final user = UserModel(
+        uid: 'user-1',
+        email: 'user@example.com',
+        name: 'مستخدم تجريبي',
+        accountType: 'company',
+        userType: 'company',
+        phone: '01000000000',
+        companyName: 'شركة زهرة',
+        avatarPath: 'user-1/avatar.png',
+      );
+
+      final restored = UserModel.fromMap(user.toMap(), user.uid);
+      expect(restored.phone, '01000000000');
+      expect(restored.companyName, 'شركة زهرة');
+      expect(restored.avatarPath, 'user-1/avatar.png');
+      expect(restored.accountType, 'company');
+    });
+
+    test('copyWith preserves profile fields when changing the name', () {
+      final user = UserModel(
+        uid: 'user-1',
+        email: 'user@example.com',
+        phone: '01000000000',
+        companyName: 'شركة زهرة',
+        avatarPath: 'user-1/avatar.png',
+      );
+
+      final updated = user.copyWith(name: 'اسم جديد');
+      expect(updated.name, 'اسم جديد');
+      expect(updated.phone, user.phone);
+      expect(updated.companyName, user.companyName);
+      expect(updated.avatarPath, user.avatarPath);
+    });
+  });
+
+
 }
