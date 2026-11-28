@@ -45,6 +45,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         data: {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
+          // Keep the selected account role until the user confirms email
+          // and the profile row can be created after the first sign-in.
+          'user_type': _selectedRole,
+          'account_type': _selectedRole,
           if (_selectedRole != 'individual')
             'company_name': _companyNameController.text.trim(),
         },
