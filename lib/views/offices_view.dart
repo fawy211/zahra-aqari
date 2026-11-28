@@ -153,24 +153,23 @@ class _OfficeCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                width: 60,
+                height: 60,
                 color: const Color(0xFF003366).withOpacity(0.06),
-                borderRadius: BorderRadius.circular(14),
-                image: logoUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(logoUrl),
+                child: logoUrl.isEmpty
+                    ? const Icon(Icons.business_rounded,
+                        size: 28, color: Color(0xFF003366))
+                    : Image.network(
+                        logoUrl,
                         fit: BoxFit.cover,
-                        onError: (exception, stackTrace) {},
-                      )
-                    : null,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.business_rounded,
+                                size: 28, color: Color(0xFF003366)),
+                      ),
               ),
-              child: logoUrl.isEmpty
-                  ? const Icon(Icons.business_rounded,
-                      size: 28, color: Color(0xFF003366))
-                  : null,
             ),
             const SizedBox(width: 14),
             Expanded(
