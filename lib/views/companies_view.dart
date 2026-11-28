@@ -14,7 +14,16 @@ class CompaniesView extends StatefulWidget {
 class _CompaniesViewState extends State<CompaniesView> {
   final TextEditingController _searchController = TextEditingController();
   final CompanyService _companyService = CompanyService();
+  late final Stream<List<CompanyModel>> _companiesStream;
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Keep one stream for the lifetime of the screen; rebuilding the search
+    // field must not restart the periodic directory subscription.
+    _companiesStream = _companyService.getCompanies();
+  }
 
   @override
   void dispose() {
@@ -37,7 +46,7 @@ class _CompaniesViewState extends State<CompaniesView> {
           _buildSearchBar(),
           Expanded(
             child: StreamBuilder<List<CompanyModel>>(
-              stream: _companyService.getCompanies(),
+              stream: _companiesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !snapshot.hasData) {
