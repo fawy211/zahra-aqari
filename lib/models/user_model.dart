@@ -8,6 +8,8 @@ class UserModel {
   final int adsCount; // عدد الإعلانات المتاحة
   final bool isVerifiedOffice; // توثيق المكتب
   final String avatarPath; // مسار صورة الحساب في Storage
+  final String phone;
+  final String companyName;
 
   UserModel({
     required this.uid,
@@ -19,6 +21,8 @@ class UserModel {
     this.adsCount = 0,
     this.isVerifiedOffice = false,
     this.avatarPath = '',
+    this.phone = '',
+    this.companyName = '',
   });
 
   // 1. القراءة الآمنة من Supabase مع قيم افتراضية كاملة لمنع الانهيار
@@ -45,6 +49,8 @@ class UserModel {
 
       // معالجة أمنية للقيم البوليانية (True / False)
       avatarPath: map['avatar_path']?.toString() ?? '',
+      phone: map['phone']?.toString() ?? '',
+      companyName: map['company_name']?.toString() ?? '',
       isVerifiedOffice: () {
         final val = map['is_verified_office'] ?? map['isVerifiedOffice'];
         if (val is bool) return val;
@@ -67,6 +73,8 @@ class UserModel {
       'ads_count': adsCount,
       'is_verified_office': isVerifiedOffice,
       'avatar_path': avatarPath,
+      'phone': phone,
+      'company_name': companyName,
     };
   }
 
@@ -80,6 +88,8 @@ class UserModel {
     int? adsCount,
     bool? isVerifiedOffice,
     String? avatarPath,
+    String? phone,
+    String? companyName,
   }) {
     return UserModel(
       uid: uid,
@@ -91,6 +101,8 @@ class UserModel {
       adsCount: adsCount ?? this.adsCount,
       isVerifiedOffice: isVerifiedOffice ?? this.isVerifiedOffice,
       avatarPath: avatarPath ?? this.avatarPath,
+      phone: phone ?? this.phone,
+      companyName: companyName ?? this.companyName,
     );
   }
 }
