@@ -49,6 +49,9 @@ class SubscriptionService {
   }
 
   bool canPostNewAd(int currentAdsCount, SubscriptionPlan plan) {
+    // The subscription screen treats zero or a negative limit as unlimited.
+    // Keep the posting check consistent with the plan description.
+    if (plan.maxAdsPerMonth <= 0) return true;
     return currentAdsCount < plan.maxAdsPerMonth;
   }
 
