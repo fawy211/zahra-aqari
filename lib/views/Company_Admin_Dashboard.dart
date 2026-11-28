@@ -131,7 +131,7 @@ class CompanyAdminDashboard extends StatelessWidget {
     final ownerId = supabase.auth.currentUser?.id;
 
     if (ownerId == null) {
-      return _statsContainer(0, 0);
+      return _statsContainer(-1, -1);
     }
 
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -142,8 +142,9 @@ class CompanyAdminDashboard extends StatelessWidget {
           // Supabase RLS remains responsible for deciding which rows are visible.
           .contains('metadata', {'company_id': companyId}),
       builder: (context, propertySnapshot) {
-        final propertiesCount =
-            propertySnapshot.data?.length ?? 0;
+        final propertiesCount = propertySnapshot.hasError
+            ? -1
+            : propertySnapshot.data?.length ?? -1;
 
         return FutureBuilder<Map<String, dynamic>?>(
           future: supabase
@@ -156,6 +157,9 @@ class CompanyAdminDashboard extends StatelessWidget {
             final workspaceId =
                 workspaceSnapshot.data?['id']?.toString();
 
+            if (workspaceSnapshot.hasError) {
+              return _statsContainer(propertiesCount, -1);
+            }
             if (workspaceId == null) {
               return _statsContainer(propertiesCount, 0);
             }
@@ -166,6 +170,9 @@ class CompanyAdminDashboard extends StatelessWidget {
                   .stream(primaryKey: ['workspace_id', 'user_id'])
                   .eq('workspace_id', workspaceId),
               builder: (context, membersSnapshot) {
+                if (membersSnapshot.hasError) {
+                  return _statsContainer(propertiesCount, -1);
+                }
                 final members = membersSnapshot.data ?? [];
                 final delegatesCount =
                     members.where((member) => member['role'] != 'owner').length;
@@ -198,8 +205,13 @@ class CompanyAdminDashboard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _statItem(
-              "عقارات", propertiesCount.toString(), const Color(0xFF003366)),
-          _statItem("أعضاء الفريق", delegatesCount.toString(), Colors.teal),
+              "عقارات",
+              propertiesCount < 0 ? "—" : propertiesCount.toString(),
+              const Color(0xFF003366)),
+          _statItem(
+              "أعضاء الفريق",
+              delegatesCount < 0 ? "—" : delegatesCount.toString(),
+              Colors.teal),
         ],
       ),
     );
