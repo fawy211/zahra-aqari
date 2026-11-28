@@ -138,7 +138,8 @@ class CompanyAdminDashboard extends StatelessWidget {
       future: supabase
           .from('properties')
           .select('id')
-          .eq('owner_id', ownerId)
+          // Include properties added by company delegates as well as the owner.
+          // Supabase RLS remains responsible for deciding which rows are visible.
           .contains('metadata', {'company_id': companyId}),
       builder: (context, propertySnapshot) {
         final propertiesCount =
