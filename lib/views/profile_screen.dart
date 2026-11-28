@@ -318,24 +318,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildAvatarInitial(String initial) {
+    return Center(
+      child: Text(
+        initial,
+        style: const TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF003366),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileHeader(UserModel userModel, String email) {
     final String displayName =
         userModel.name.isNotEmpty ? userModel.name : email.split('@')[0];
     final String initial =
         displayName.isNotEmpty ? displayName[0].toUpperCase() : "U";
+    final avatarPath = userModel.avatarPath;
+    final avatarUrl = avatarPath.isNotEmpty
+        ? supabase.storage.from('profiles_bucket').getPublicUrl(avatarPath)
+        : null;
 
     return Column(
       children: [
         CircleAvatar(
           radius: 45,
           backgroundColor: const Color(0xFF003366).withOpacity(0.1),
-          child: Text(
-            initial,
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
-            ),
+          child: ClipOval(
+            child: avatarUrl == null
+                ? _buildAvatarInitial(initial)
+                : Image.network(
+                    avatarUrl,
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildAvatarInitial(initial),
+                  ),
           ),
         ),
         const SizedBox(height: 12),
