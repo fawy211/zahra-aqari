@@ -7,6 +7,7 @@ class UserModel {
   final String subscriptionPlan; // خطة الاشتراك ('free', 'basic', etc.)
   final int adsCount; // عدد الإعلانات المتاحة
   final bool isVerifiedOffice; // توثيق المكتب
+  final String avatarPath; // مسار صورة الحساب في Storage
 
   UserModel({
     required this.uid,
@@ -17,6 +18,7 @@ class UserModel {
     this.subscriptionPlan = 'free',
     this.adsCount = 0,
     this.isVerifiedOffice = false,
+    this.avatarPath = '',
   });
 
   // 1. القراءة الآمنة من Supabase مع قيم افتراضية كاملة لمنع الانهيار
@@ -42,6 +44,7 @@ class UserModel {
       }(),
 
       // معالجة أمنية للقيم البوليانية (True / False)
+      avatarPath: map['avatar_path']?.toString() ?? '',
       isVerifiedOffice: () {
         final val = map['is_verified_office'] ?? map['isVerifiedOffice'];
         if (val is bool) return val;
@@ -63,6 +66,7 @@ class UserModel {
       'subscription_plan': subscriptionPlan,
       'ads_count': adsCount,
       'is_verified_office': isVerifiedOffice,
+      'avatar_path': avatarPath,
     };
   }
 
@@ -75,6 +79,7 @@ class UserModel {
     String? subscriptionPlan,
     int? adsCount,
     bool? isVerifiedOffice,
+    String? avatarPath,
   }) {
     return UserModel(
       uid: uid,
@@ -85,6 +90,7 @@ class UserModel {
       subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       adsCount: adsCount ?? this.adsCount,
       isVerifiedOffice: isVerifiedOffice ?? this.isVerifiedOffice,
+      avatarPath: avatarPath ?? this.avatarPath,
     );
   }
 }
