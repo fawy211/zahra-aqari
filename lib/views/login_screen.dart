@@ -90,12 +90,10 @@ class _LoginScreenState extends State<LoginScreen> {
         if (response.session != null) {
           try {
             await supabase.from('profiles').upsert({
-            'id': createdUser.id,
-            'name': _nameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'created_at': DateTime.now().toIso8601String(),
-          });
-        } catch (error) {
+              'id': createdUser.id,
+              'name': _nameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'created_at': DateTime.now().toUtc().toIso8601String(),
             }, onConflict: 'id');
           } catch (error) {
             profileSaveError = error.toString();
