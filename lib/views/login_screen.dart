@@ -39,10 +39,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (_isLoginMode) {
         // 1. تسجيل الدخول عبر Supabase
-        await supabase.auth.signInWithPassword(
+        final signInResponse = await supabase.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+
+        // With email confirmation enabled, profile creation may have been
+        // deferred during sign-up. Create the minimal profile after a real
+        // authenticated session is established.
+        final signedInUser = signInResponse.user;
+        if (signedInUser != null) {
+          final existingProfile = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', signedInUser.id)
+              .maybeSingle();
+          if (existingProfile == null) {
+            await supabase.from('profiles').insert({
+              'id': signedInUser.id,
+              'email': signedInUser.email ?? _emailController.text.trim(),
+              'name': signedInUser.userMetadata?['name']?.toString() ??
+                  _nameController.text.trim(),
+              'created_at': DateTime.now().toUtc().toIso8601String(),
+            });
+          }
+        }
 
         if (!mounted) return;
         _showSnackBar("تم تسجيل الدخول بنجاح", Colors.green);
@@ -64,16 +85,22 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         String? profileSaveError;
-        try {
-          await supabase.from('profiles').insert({
+        // Do not attempt an RLS-protected profile write until email
+        // confirmation has produced an authenticated session.
+        if (response.session != null) {
+          try {
+            await supabase.from('profiles').upsert({
             'id': createdUser.id,
             'name': _nameController.text.trim(),
             'email': _emailController.text.trim(),
             'created_at': DateTime.now().toIso8601String(),
           });
         } catch (error) {
-          profileSaveError = error.toString();
-          debugPrint('تعذر حفظ بيانات الملف الشخصي بعد إنشاء الحساب: $error');
+            }, onConflict: 'id');
+          } catch (error) {
+            profileSaveError = error.toString();
+            debugPrint('تعذر حفظ بيانات الملف الشخصي بعد إنشاء الحساب: $error');
+          }
         }
 
         if (!mounted) return;
